@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>PIONEER Watermark App</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="manifest" href="manifest.json" />
+<style>
+:root{
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --card-2:#f1f5f9;
+  --line:#e2e8f0;
+  --line-2:#cbd5e1;
+  --text:#0f172a;
+  --muted:#64748b;
+  --muted-2:#94a3b8;
+  --primary:#2563eb;
+  --primary-2:#1d4ed8;
+  --success:#10b981;
+  --danger:#ef4444;
+  --shadow:0 8px 24px rgba(15,23,42,.08);
+  --radius:18px;
+  --radius-md:14px;
+  --radius-sm:10px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--font);
+  color:var(--text);
+  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.45;
+}
+input[type="file"]{display:none}
+button,input,select{font:inherit}
+img{display:block;max-width:100%}
+
+.app{
+  max-width:1200px;
+  margin:0 auto;
+  padding:14px;
+}
+
+.header{
+  margin-bottom:14px;
+}
+.header-box{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+.header-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.header-icon{
+  width:48px;
+  height:48px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,var(--primary),#60a5fa);
+  color:#fff;
+  font-size:24px;
+  flex-shrink:0;
+}
+.header h1{
+  font-size:22px;
+  font-weight:800;
+}
+.header p{
+  color:var(--muted);
+  font-size:14px;
+  margin-top:4px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+.top-actions{
+  padding:14px;
+  margin-bottom:14px;
+}
+.top-actions h2{
+  font-size:14px;
+  color:var(--muted);
+  margin-bottom:12px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.btn-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.btn{
+  border:1px solid var(--line-2);
+  background:#fff;
+  color:var(--text);
+  border-radius:14px;
+  padding:12px 14px;
+  min-height:46px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  text-decoration:none;
+  transition:.18s ease;
+  font-weight:600;
+}
+.btn:hover{transform:translateY(-1px);background:#f8fafc}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+  border-color:var(--primary);
+}
+.btn-primary:hover{background:var(--primary-2)}
+.btn-danger{
+  color:var(--danger);
+  border-color:rgba(239,68,68,.25);
+}
+.btn-danger:hover{
+  background:rgba(239,68,68,.06);
+}
+.btn-soft{
+  background:#eff6ff;
+  color:var(--primary);
+  border-color:#bfdbfe;
+}
+.status{
+  margin-top:12px;
+  min-height:20px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+.layout{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+}
+
+.main-col,
+.side-col{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.section-card{
+  padding:14px;
+}
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.section-title h3{
+  font-size:15px;
+  font-weight:800;
+}
+.section-sub{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.queue-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.queue-strip{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+.queue-thumb,
+.queue-add{
+  width:86px;
+  height:70px;
+  border-radius:12px;
+  flex:0 0 auto;
+  overflow:hidden;
+  position:relative;
+}
+.queue-thumb{
+  border:2px solid transparent;
+  background:#f1f5f9;
+  cursor:pointer;
+}
+.queue-thumb.active{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.1);
+}
+.queue-thumb.done::after{
+  content:"✓";
+  position:absolute;
+  top:6px;
+  left:6px;
+  width:20px;
+  height:20px;
+  border-radius:999px;
+  background:var(--success);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:800;
+}
+.queue-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.q-del{
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:22px;
+  height:22px;
+  border:none;
+  border-radius:999px;
+  background:rgba(15,23,42,.72);
+  color:#fff;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.queue-add{
+  border:2px dashed var(--line-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f8fafc;
+  color:var(--muted);
+  font-size:26px;
+  cursor:pointer;
+}
+
+.preview-wrap{
+  background:#f8fafc;
+  border:1px solid var(--line);
+  border-radius:18px;
+  min-height:280px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:12px;
+}
+.preview-empty{
+  text-align:center;
+  color:var(--muted-2);
+  padding:26px 12px;
+}
+.preview-empty i{
+  font-size:48px;
+  margin-bottom:10px;
+  display:block;
+  opacity:.7;
+}
+#mainCanvas{
+  max-width:100%;
+  max-height:65vh;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 6px 20px rgba(15,23,42,.08);
+}
+
+.action-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.progress{
+  margin-top:12px;
+  display:none;
+}
+.progress.show{display:block}
+.progress-bar{
+  height:8px;
+  background:#e2e8f0;
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--primary),#60a5fa);
+  border-radius:999px;
+  transition:width .25s ease;
+}
+.progress-text{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:13px;
+  text-align:center;
+}
+
+details.group{
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--card);
+  overflow:hidden;
+}
+details.group[open]{
+  box-shadow:var(--shadow);
+}
+details.group summary{
+  list-style:none;
+  cursor:pointer;
+  padding:15px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  user-select:none;
+}
+details.group summary::-webkit-details-marker{display:none}
+.summary-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.summary-left i{
+  font-size:18px;
+  color:var(--primary);
+}
+.summary-title{
+  font-size:15px;
+  font-weight:800;
+}
+.summary-desc{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+.summary-arrow{
+  color:var(--muted);
+  transition:transform .18s ease;
+}
+details[open] .summary-arrow{
+  transform:rotate(180deg);
+}
+.group-body{
+  padding:0 16px 16px;
+  border-top:1px solid var(--line);
+}
+
+.field{
+  margin-top:14px;
+}
+.field label{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-weight:700;
+}
+.input,
+.select,
+.color-input{
+  width:100%;
+  border:1px solid var(--line-2);
+  background:#fff;
+  color:var(--text);
+  border-radius:14px;
+  padding:12px 14px;
+  min-height:46px;
+  outline:none;
+}
+.color-input{
+  padding:4px;
+  min-height:46px;
+}
+.input:focus,.select:focus,.color-input:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.1);
+}
+.row-2{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.range-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.range-row input[type=range]{
+  flex:1;
+  accent-color:var(--primary);
+}
+.range-value{
+  min-width:52px;
+  text-align:right;
+  font-size:13px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.toggle-wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+.toggle{
+  border:1px solid var(--line-2);
+  border-radius:16px;
+  background:#fff;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+}
+.toggle.active{
+  background:#eff6ff;
+  border-color:#93c5fd;
+}
+.toggle input{
+  width:18px;
+  height:18px;
+  accent-color:var(--primary);
+}
+.muted-box{
+  background:#f8fafc;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  margin-top:12px;
+}
+
+.logo-preview{
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  display:none;
+  gap:12px;
+  align-items:center;
+  background:#f8fafc;
+}
+.logo-preview.show{
+  display:flex;
+}
+.logo-preview img{
+  width:56px;
+  height:56px;
+  border-radius:10px;
+  object-fit:contain;
+  background:#fff;
+  border:1px solid var(--line);
+}
+.logo-meta{
+  min-width:0;
+  flex:1;
+}
+.logo-name{
+  font-size:13px;
+  font-weight:700;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.logo-desc{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.preset-toolbar{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.preset-list{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.preset-item{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:#fff;
+}
+.preset-item.active{
+  background:#eff6ff;
+  border-color:#93c5fd;
+}
+.preset-name{
+  flex:1;
+  min-width:0;
+  font-weight:700;
+  font-size:14px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.preset-item-actions{
+  display:flex;
+  gap:6px;
+}
+.icon-btn{
+  width:36px;
+  height:36px;
+  border:none;
+  border-radius:12px;
+  background:#f8fafc;
+  border:1px solid var(--line);
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.icon-btn:hover{background:#eff6ff}
+.empty-list{
+  padding:14px;
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  border:1px dashed var(--line-2);
+  border-radius:14px;
+  background:#f8fafc;
+}
+
+.gallery-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.gallery-item{
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+}
+.gallery-image{
+  position:relative;
+  aspect-ratio:1/1;
+  cursor:pointer;
+  overflow:hidden;
+}
+.gallery-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.gallery-actions{
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  display:flex;
+  gap:8px;
+}
+.gallery-action-btn{
+  width:38px;
+  height:38px;
+  border:none;
+  border-radius:12px;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);
+  color:var(--text);
+  box-shadow:0 6px 14px rgba(0,0,0,.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.gallery-action-btn:hover{
+  background:#fff;
+}
+.gallery-caption{
+  padding:10px 12px;
+  font-size:12px;
+  color:var(--muted);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.camera-box{
+  display:none;
+  margin-top:12px;
+}
+.camera-box.show{display:block}
+.camera-preview{
+  width:100%;
+  border-radius:16px;
+  background:#000;
+  min-height:220px;
+  max-height:50vh;
+}
+.camera-actions{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:26px;
+  height:26px;
+  border-radius:999px;
+  padding:0 10px;
+  background:#eff6ff;
+  color:var(--primary);
+  font-size:12px;
+  font-weight:800;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.42);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:2000;
+}
+.modal.show{display:flex}
+.modal-box{
+  width:min(100%,420px);
+  background:#fff;
+  border-radius:20px;
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  padding:18px;
+}
+.modal-box h3{
+  font-size:18px;
+  margin-bottom:8px;
+}
+.modal-box p{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:12px;
+}
+.modal-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+
+@media (min-width: 700px){
+  .btn-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .action-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gallery-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .row-2{grid-template-columns:1fr 1fr}
+  .camera-actions{grid-template-columns:repeat(3,1fr)}
+}
+
+@media (min-width: 980px){
+  .layout{
+    grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);
+    align-items:start;
+  }
+  .side-col{
+    position:sticky;
+    top:14px;
+  }
+  .gallery-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* ── SPLASH SCREEN ── */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.7s ease, visibility 0.7s ease;
+}
+
+.splash-screen.hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-content {
+  text-align: center;
+  animation: splashFadeIn 0.8s ease forwards;
+}
+
+.splash-logo-wrap {
+  width: 170px;
+  height: 170px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  animation: logoPop 0.9s ease forwards;
+}
+
+.splash-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+
+.splash-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin-bottom: 6px;
+}
+
+.splash-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+.splash-loader {
+  width: 150px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.splash-loader span {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+  animation: loadingMove 1.1s ease-in-out infinite;
+}
+
+@keyframes splashFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes logoPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes loadingMove {
+  0% {
+    transform: translateX(-120%);
+  }
+  50% {
+    transform: translateX(85%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+/* biar app muncul smooth setelah splash */
+.app {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.app.app-ready {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+  .splash-logo-wrap {
+    width: 145px;
+    height: 145px;
+  }
+
+  .splash-title {
+    font-size: 20px;
+  }
+
+  .splash-subtitle {
+    font-size: 13px;
+  }
+}
+
+
+@media (max-width: 420px){
+  .header h1{font-size:20px}
+  .btn{
+    padding:11px 12px;
+    font-size:14px;
+  }
+  .gallery-actions{
+    right:6px;
+    bottom:6px;
+    gap:6px;
+  }
+  .gallery-action-btn{
+    width:36px;
+    height:36px;
+    border-radius:11px;
+  }
+}
+
+</style>
+</head>
+<body>
+<!-- SPLASH SCREEN -->
+<div id="splashScreen" class="splash-screen">
+  <div class="splash-content">
+    <div class="splash-logo-wrap">
+      <img src="logo.png" alt="Pioneer Logo" class="splash-logo">
+    </div>
+
+    <h1 class="splash-title">PIONEER Watermark App</h1>
+    <p class="splash-subtitle">Loading...</p>
+
+    <div class="splash-loader">
+      <span></span>
+    </div>
+  </div>
+</div>
+<div class="app">
+
+  <div class="header">
+    <div class="header-box">
+      <div class="header-top">
+			<div class="header-icon">
+			  <img src="logo.png" alt="Pioneer Logo">
+			</div>
+        <div>
+          <h1>PIONEER Watermark App</h1>
+          <p>Oleh Azam Alwafy</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP ACTIONS -->
+  <div class="card top-actions">
+    <h2>Quick Actions</h2>
+    <div class="btn-grid">
+      <label class="btn">
+        <i class="ti ti-upload"></i> Upload
+        <input type="file" id="fileInput" accept="image/*" multiple>
+      </label>
+
+      <button class="btn" id="camBtn">
+        <i class="ti ti-camera"></i> Camera
+      </button>
+
+      <button class="btn btn-primary" id="loadPresetBtn">
+        <i class="ti ti-folder-open"></i> Load Preset
+      </button>
+
+      <button class="btn" id="savePresetBtn">
+        <i class="ti ti-device-floppy"></i> Save Preset
+      </button>
+    </div>
+
+    <input type="file" id="presetFileInput" accept=".json,application/json">
+    <div class="status" id="statusMsg"></div>
+
+    <div class="camera-box" id="camSection">
+      <video id="camVideo" class="camera-preview" autoplay playsinline muted></video>
+      <div class="camera-actions">
+        <button class="btn btn-primary" id="snapBtn">
+          <i class="ti ti-camera"></i> Capture & Close
+        </button>
+        <button class="btn btn-soft" id="snapAddBtn">
+          <i class="ti ti-circle-plus"></i> Capture & Continue
+        </button>
+        <button class="btn btn-danger" id="closeCamBtn">
+          <i class="ti ti-x"></i> Close Camera
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- MAIN -->
+    <div class="main-col">
+
+      <!-- QUEUE -->
+      <div class="card section-card">
+        <div class="section-title">
+          <div>
+            <h3>Queue Foto</h3>
+            <div class="section-sub" id="queueLabel">Belum ada gambar</div>
+          </div>
+          <button class="btn btn-danger" id="clearQueueBtn" disabled>
+            <i class="ti ti-trash"></i> Clear
+          </button>
+        </div>
+        <div class="queue-strip" id="queueStrip"></div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="card section-card">
+        <div class="section-title">
+          <div>
+            <h3>Preview</h3>
+            <div class="section-sub">Pilih gambar dari queue untuk lihat hasil</div>
+          </div>
+        </div>
+
+        <div class="preview-wrap">
+          <div class="preview-empty" id="emptyState">
+            <i class="ti ti-photo-off"></i>
+            <div>Upload gambar atau pakai kamera untuk mulai</div>
+          </div>
+          <canvas id="mainCanvas" style="display:none;"></canvas>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="card section-card">
+        <div class="section-title">
+          <div>
+            <h3>Aksi Hasil</h3>
+            <div class="section-sub">Apply, save, atau share satu atau semua gambar</div>
+          </div>
+        </div>
+
+        <div class="action-grid">
+          <button class="btn" id="btnApplyOne" disabled>
+            <i class="ti ti-sparkles"></i> Apply
+          </button>
+          <button class="btn btn-primary" id="btnApplyAll" disabled>
+            <i class="ti ti-sparkles"></i> Apply All
+          </button>
+          <button class="btn" id="btnSaveOne" disabled>
+            <i class="ti ti-download"></i> Save
+          </button>
+          <button class="btn btn-primary" id="btnSaveAll" disabled>
+            <i class="ti ti-download"></i> Save All
+          </button>
+          <button class="btn" id="btnShareOne" disabled>
+            <i class="ti ti-share"></i> Share
+          </button>
+          <button class="btn btn-primary" id="btnShareAll" disabled>
+            <i class="ti ti-share-3"></i> Share All
+          </button>
+        </div>
+
+        <div class="progress" id="progressWrap">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressLabel"></div>
+        </div>
+      </div>
+
+      <!-- GALLERY -->
+      <div class="card section-card">
+        <div class="section-title">
+          <div>
+            <h3>Gallery</h3>
+            <div class="section-sub">Tap gambar buat masuk queue lagi</div>
+          </div>
+          <span class="badge" id="galleryCount">0</span>
+        </div>
+
+        <div class="gallery-grid" id="galleryGrid">
+          <div class="empty-list" style="grid-column:1/-1;">Belum ada hasil tersimpan.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SIDE / CONTROLS -->
+    <div class="side-col">
+
+      <!-- PRESETS -->
+      <details class="group" open>
+        <summary>
+          <div class="summary-left">
+            <i class="ti ti-bookmarks"></i>
+            <div>
+              <div class="summary-title">Presets</div>
+              <div class="summary-desc">Simpan, load, export preset watermark</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down summary-arrow"></i>
+        </summary>
+        <div class="group-body">
+
+          <div class="preset-toolbar">
+            <button class="btn btn-soft" id="newPresetBtn" type="button">New</button>
+            <button class="btn" id="exportPresetBtn" type="button">Export</button>
+            <button class="btn btn-danger" id="deletePresetBtn" type="button" disabled>Delete</button>
+          </div>
+
+          <div class="preset-list" id="presetList"></div>
+        </div>
+      </details>
+
+      <!-- TEXT WATERMARK -->
+      <details class="group" open>
+        <summary>
+          <div class="summary-left">
+            <i class="ti ti-text-size"></i>
+            <div>
+              <div class="summary-title">Text Watermark</div>
+              <div class="summary-desc">Atur teks watermark</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down summary-arrow"></i>
+        </summary>
+        <div class="group-body">
+
+          <div class="toggle-wrap">
+            <label class="toggle active" id="lblTeks">
+              <input type="checkbox" id="chkTeks" checked>
+              <span>Aktifkan Text</span>
+            </label>
+            <label class="toggle" id="lblLogo">
+              <input type="checkbox" id="chkLogo">
+              <span>Aktifkan Logo</span>
+            </label>
+          </div>
+
+          <div id="sectionTeks">
+            <div class="field">
+              <label for="wmText">Text</label>
+              <input class="input" type="text" id="wmText" value="© MyCollection 2024" placeholder="Masukkan teks watermark">
+            </div>
+
+            <div class="row-2">
+              <div class="field">
+                <label for="wmPos">Position</label>
+                <select class="select" id="wmPos">
+                  <option value="br">Bottom Right</option>
+                  <option value="bl">Bottom Left</option>
+                  <option value="tr">Top Right</option>
+                  <option value="tl">Top Left</option>
+                  <option value="center">Center</option>
+                  <option value="tile">Tile Pattern</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="wmFont">Font</label>
+                <select class="select" id="wmFont">
+                  <option value="sans-serif">Sans Serif</option>
+                  <option value="serif">Serif</option>
+                  <option value="monospace">Monospace</option>
+                  <option value="cursive">Script</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Size <span class="range-value" id="wmSizeVal">28px</span></label>
+              <div class="range-row">
+                <input type="range" id="wmSize" min="8" max="120" value="28">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Opacity <span class="range-value" id="wmOpacityVal">70%</span></label>
+              <div class="range-row">
+                <input type="range" id="wmOpacity" min="5" max="100" value="70">
+              </div>
+            </div>
+
+            <div class="row-2">
+              <div class="field">
+                <label for="wmColor">Color</label>
+                <input class="color-input" type="color" id="wmColor" value="#ffffff">
+              </div>
+              <div class="field">
+                <label for="wmShadow">Shadow</label>
+                <select class="select" id="wmShadow">
+                  <option value="none">None</option>
+                  <option value="dark" selected>Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="muted-box" id="tileExtra" style="display:none;">
+              <div class="row-2">
+                <div class="field">
+                  <label>Gap X <span class="range-value" id="tileGapXVal">60px</span></label>
+                  <div class="range-row">
+                    <input type="range" id="tileGapX" min="0" max="400" value="60">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Gap Y <span class="range-value" id="tileGapYVal">50px</span></label>
+                  <div class="range-row">
+                    <input type="range" id="tileGapY" min="0" max="300" value="50">
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>Angle <span class="range-value" id="tileAngleVal">-22°</span></label>
+                <div class="range-row">
+                  <input type="range" id="tileAngle" min="-90" max="0" value="-22">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- LOGO WATERMARK -->
+      <details class="group">
+        <summary>
+          <div class="summary-left">
+            <i class="ti ti-photo"></i>
+            <div>
+              <div class="summary-title">Logo Watermark</div>
+              <div class="summary-desc">Upload dan atur watermark logo</div>
+            </div>
+          </div>
+          <i class="ti ti-chevron-down summary-arrow"></i>
+        </summary>
+        <div class="group-body">
+          <div id="sectionLogo">
+            <div class="field">
+              <label>Logo File</label>
+              <div class="row-2">
+                <label class="btn">
+                  <i class="ti ti-upload"></i> Choose Logo
+                  <input type="file" id="logoInput" accept="image/*">
+                </label>
+                <button class="btn btn-danger" id="clearLogoBtn" type="button" disabled>
+                  <i class="ti ti-x"></i> Clear Logo
+                </button>
+              </div>
+            </div>
+
+            <div class="logo-preview" id="logoPreview">
+              <img id="logoPreviewImg" src="" alt="">
+              <div class="logo-meta">
+                <div class="logo-name" id="logoPreviewName">Custom Logo</div>
+                <div class="logo-desc">Logo siap dipakai sebagai watermark</div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="logoPos">Position</label>
+              <select class="select" id="logoPos">
+                <option value="br">Bottom Right</option>
+                <option value="bl">Bottom Left</option>
+                <option value="tr">Top Right</option>
+                <option value="tl">Top Left</option>
+                <option value="center">Center</option>
+                <option value="tile">Tile Pattern</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Size <span class="range-value" id="logoSizeVal">80px</span></label>
+              <div class="range-row">
+                <input type="range" id="logoSize" min="10" max="400" value="80">
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Opacity <span class="range-value" id="logoOpacityVal">70%</span></label>
+              <div class="range-row">
+                <input type="range" id="logoOpacity" min="5" max="100" value="70">
+              </div>
+            </div>
+
+            <div class="muted-box" id="logoTileExtra" style="display:none;">
+              <div class="row-2">
+                <div class="field">
+                  <label>Gap X <span class="range-value" id="logoTileGapXVal">80px</span></label>
+                  <div class="range-row">
+                    <input type="range" id="logoTileGapX" min="0" max="400" value="80">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Gap Y <span class="range-value" id="logoTileGapYVal">80px</span></label>
+                  <div class="range-row">
+                    <input type="range" id="logoTileGapY" min="0" max="400" value="80">
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Angle <span class="range-value" id="logoTileAngleVal">-22°</span></label>
+                <div class="range-row">
+                  <input type="range" id="logoTileAngle" min="-90" max="0" value="-22">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</div>
+
+<!-- SAVE PRESET MODAL -->
+<div class="modal" id="savePresetModal">
+  <div class="modal-box">
+    <h3>Save Preset</h3>
+    <p>Simpan semua pengaturan watermark saat ini.</p>
+    <input class="input" type="text" id="presetNameInput" placeholder="Nama preset..." maxlength="40">
+    <div class="modal-actions">
+      <button class="btn" id="cancelPresetBtn" type="button">Cancel</button>
+      <button class="btn btn-primary" id="confirmSavePresetBtn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   STATE
+========================= */
+const DEFAULT_SETTINGS = {
+  textEnabled: true,
+  logoEnabled: false,
+  wmText: '© MyCollection 2024',
+  wmSize: 28,
+  wmOpacity: 70,
+  wmColor: '#ffffff',
+  wmPos: 'br',
+  wmFont: 'sans-serif',
+  wmShadow: 'dark',
+  tileGapX: 60,
+  tileGapY: 50,
+  tileAngle: -22,
+  logoSize: 80,
+  logoOpacity: 70,
+  logoPos: 'br',
+  logoTileGapX: 80,
+  logoTileGapY: 80,
+  logoTileAngle: -22,
+  logoDataURL: null
+};
+
+let queue = [];
+let activeIdx = -1;
+let logoImage = null;
+let camStream = null;
+let busy = false;
+let savedCount = 0;
+let gallery = [];
+let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
+let activePresetIdx = -1;
+let statusTimer = null;
+
+/* =========================
+   ELEMENTS
+========================= */
+const el = {
+  fileInput: document.getElementById('fileInput'),
+  presetFileInput: document.getElementById('presetFileInput'),
+  camBtn: document.getElementById('camBtn'),
+  camSection: document.getElementById('camSection'),
+  camVideo: document.getElementById('camVideo'),
+  snapBtn: document.getElementById('snapBtn'),
+  snapAddBtn: document.getElementById('snapAddBtn'),
+  closeCamBtn: document.getElementById('closeCamBtn'),
+
+  loadPresetBtn: document.getElementById('loadPresetBtn'),
+  savePresetBtn: document.getElementById('savePresetBtn'),
+  newPresetBtn: document.getElementById('newPresetBtn'),
+  exportPresetBtn: document.getElementById('exportPresetBtn'),
+  deletePresetBtn: document.getElementById('deletePresetBtn'),
+  presetList: document.getElementById('presetList'),
+
+  savePresetModal: document.getElementById('savePresetModal'),
+  presetNameInput: document.getElementById('presetNameInput'),
+  cancelPresetBtn: document.getElementById('cancelPresetBtn'),
+  confirmSavePresetBtn: document.getElementById('confirmSavePresetBtn'),
+
+  statusMsg: document.getElementById('statusMsg'),
+
+  queueStrip: document.getElementById('queueStrip'),
+  queueLabel: document.getElementById('queueLabel'),
+  clearQueueBtn: document.getElementById('clearQueueBtn'),
+
+  mainCanvas: document.getElementById('mainCanvas'),
+  emptyState: document.getElementById('emptyState'),
+
+  btnApplyOne: document.getElementById('btnApplyOne'),
+  btnApplyAll: document.getElementById('btnApplyAll'),
+  btnSaveOne: document.getElementById('btnSaveOne'),
+  btnSaveAll: document.getElementById('btnSaveAll'),
+  btnShareOne: document.getElementById('btnShareOne'),
+  btnShareAll: document.getElementById('btnShareAll'),
+
+  progressWrap: document.getElementById('progressWrap'),
+  progressFill: document.getElementById('progressFill'),
+  progressLabel: document.getElementById('progressLabel'),
+
+  galleryGrid: document.getElementById('galleryGrid'),
+  galleryCount: document.getElementById('galleryCount'),
+
+  chkTeks: document.getElementById('chkTeks'),
+  chkLogo: document.getElementById('chkLogo'),
+  lblTeks: document.getElementById('lblTeks'),
+  lblLogo: document.getElementById('lblLogo'),
+  sectionTeks: document.getElementById('sectionTeks'),
+  sectionLogo: document.getElementById('sectionLogo'),
+
+  wmText: document.getElementById('wmText'),
+  wmPos: document.getElementById('wmPos'),
+  wmFont: document.getElementById('wmFont'),
+  wmSize: document.getElementById('wmSize'),
+  wmSizeVal: document.getElementById('wmSizeVal'),
+  wmOpacity: document.getElementById('wmOpacity'),
+  wmOpacityVal: document.getElementById('wmOpacityVal'),
+  wmColor: document.getElementById('wmColor'),
+  wmShadow: document.getElementById('wmShadow'),
+  tileExtra: document.getElementById('tileExtra'),
+  tileGapX: document.getElementById('tileGapX'),
+  tileGapXVal: document.getElementById('tileGapXVal'),
+  tileGapY: document.getElementById('tileGapY'),
+  tileGapYVal: document.getElementById('tileGapYVal'),
+  tileAngle: document.getElementById('tileAngle'),
+  tileAngleVal: document.getElementById('tileAngleVal'),
+
+  logoInput: document.getElementById('logoInput'),
+  clearLogoBtn: document.getElementById('clearLogoBtn'),
+  logoPreview: document.getElementById('logoPreview'),
+  logoPreviewImg: document.getElementById('logoPreviewImg'),
+  logoPreviewName: document.getElementById('logoPreviewName'),
+  logoPos: document.getElementById('logoPos'),
+  logoSize: document.getElementById('logoSize'),
+  logoSizeVal: document.getElementById('logoSizeVal'),
+  logoOpacity: document.getElementById('logoOpacity'),
+  logoOpacityVal: document.getElementById('logoOpacityVal'),
+  logoTileExtra: document.getElementById('logoTileExtra'),
+  logoTileGapX: document.getElementById('logoTileGapX'),
+  logoTileGapXVal: document.getElementById('logoTileGapXVal'),
+  logoTileGapY: document.getElementById('logoTileGapY'),
+  logoTileGapYVal: document.getElementById('logoTileGapYVal'),
+  logoTileAngle: document.getElementById('logoTileAngle'),
+  logoTileAngleVal: document.getElementById('logoTileAngleVal')
+};
+
+const ctx = el.mainCanvas.getContext('2d');
+
+/* =========================
+   HELPERS
+========================= */
+function setStatus(msg, dur = 3000) {
+  clearTimeout(statusTimer);
+  el.statusMsg.textContent = msg || '';
+  if (dur > 0) {
+    statusTimer = setTimeout(() => {
+      el.statusMsg.textContent = '';
+    }, dur);
+  }
+}
+
+function showModal(modal) {
+  modal.classList.add('show');
+}
+
+function closeModal() {
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+}
+
+function updateProgress(pct, text) {
+  el.progressWrap.classList.add('show');
+  el.progressFill.style.width = pct + '%';
+  el.progressLabel.textContent = text || '';
+}
+
+function hideProgress(delay = 1200) {
+  setTimeout(() => {
+    el.progressWrap.classList.remove('show');
+    el.progressFill.style.width = '0%';
+    el.progressLabel.textContent = '';
+  }, delay);
+}
+
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = () => reject(new Error('Gagal membaca file: ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+async function readFilesSequential(fileList) {
+  const list = [];
+  for (const f of fileList) {
+    try {
+      list.push({
+        src: await readFileAsDataURL(f),
+        name: f.name
+      });
+    } catch (err) {
+      console.warn(err);
+    }
+  }
+  return list;
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function fitCanvasSize(w, h, maxW, maxH) {
+  let nw = w;
+  let nh = h;
+  if (nw > maxW) {
+    nh = Math.round(nh * maxW / nw);
+    nw = maxW;
+  }
+  if (nh > maxH) {
+    nw = Math.round(nw * maxH / nh);
+    nh = maxH;
+  }
+  return { width: nw, height: nh };
+}
+
+function fileSafeName(name) {
+  return (name || 'watermark')
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^a-z0-9_\-]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase() || 'watermark';
+}
+
+function syncButtons() {
+  const hasQueue = queue.length > 0;
+  const disabled = busy || !hasQueue;
+  [
+    el.btnApplyOne,
+    el.btnApplyAll,
+    el.btnSaveOne,
+    el.btnSaveAll,
+    el.btnShareOne,
+    el.btnShareAll,
+    el.clearQueueBtn
+  ].forEach(btn => btn.disabled = disabled);
+
+  if (activeIdx < 0) {
+    el.btnApplyOne.disabled = true;
+    el.btnSaveOne.disabled = true;
+    el.btnShareOne.disabled = true;
+  }
+}
+
+function bindRange(input, output, formatFn) {
+  const update = () => {
+    output.textContent = formatFn(input.value);
+  };
+  input.addEventListener('input', update);
+  update();
+}
+
+function syncCheckboxes() {
+  if (!el.chkTeks.checked && !el.chkLogo.checked) {
+    el.chkTeks.checked = true;
+  }
+  el.lblTeks.classList.toggle('active', el.chkTeks.checked);
+  el.lblLogo.classList.toggle('active', el.chkLogo.checked);
+  el.sectionTeks.style.display = el.chkTeks.checked ? '' : 'none';
+  el.sectionLogo.style.opacity = el.chkLogo.checked ? '1' : '.65';
+}
+
+function syncTileExtras() {
+  el.tileExtra.style.display = el.wmPos.value === 'tile' ? '' : 'none';
+  el.logoTileExtra.style.display = el.logoPos.value === 'tile' ? '' : 'none';
+}
+
+/* =========================
+   SETTINGS / PRESETS
+========================= */
+function clearLogoUI() {
+  logoImage = null;
+  el.logoInput.value = '';
+  el.logoPreview.classList.remove('show');
+  el.logoPreviewImg.src = '';
+  el.logoPreviewName.textContent = 'Custom Logo';
+  el.clearLogoBtn.disabled = true;
+}
+
+async function setLogoFromDataURL(dataURL, fileName = 'Custom Logo') {
+  const img = new Image();
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      logoImage = img;
+      el.logoPreviewImg.src = dataURL;
+      el.logoPreviewName.textContent = fileName;
+      el.logoPreview.classList.add('show');
+      el.clearLogoBtn.disabled = false;
+      resolve();
+    };
+    img.onerror = reject;
+    img.src = dataURL;
+  });
+}
+
+function getCurrentSettings() {
+  return {
+    textEnabled: el.chkTeks.checked,
+    logoEnabled: el.chkLogo.checked,
+    wmText: el.wmText.value,
+    wmSize: Number(el.wmSize.value),
+    wmOpacity: Number(el.wmOpacity.value),
+    wmColor: el.wmColor.value,
+    wmPos: el.wmPos.value,
+    wmFont: el.wmFont.value,
+    wmShadow: el.wmShadow.value,
+    tileGapX: Number(el.tileGapX.value),
+    tileGapY: Number(el.tileGapY.value),
+    tileAngle: Number(el.tileAngle.value),
+    logoSize: Number(el.logoSize.value),
+    logoOpacity: Number(el.logoOpacity.value),
+    logoPos: el.logoPos.value,
+    logoTileGapX: Number(el.logoTileGapX.value),
+    logoTileGapY: Number(el.logoTileGapY.value),
+    logoTileAngle: Number(el.logoTileAngle.value),
+    logoDataURL: logoImage ? logoImage.src : null
+  };
+}
+
+async function applySettings(settings = {}) {
+  const s = { ...DEFAULT_SETTINGS, ...settings };
+
+  el.chkTeks.checked = !!s.textEnabled;
+  el.chkLogo.checked = !!s.logoEnabled;
+
+  el.wmText.value = s.wmText;
+  el.wmSize.value = s.wmSize;
+  el.wmOpacity.value = s.wmOpacity;
+  el.wmColor.value = s.wmColor;
+  el.wmPos.value = s.wmPos;
+  el.wmFont.value = s.wmFont;
+  el.wmShadow.value = s.wmShadow;
+  el.tileGapX.value = s.tileGapX;
+  el.tileGapY.value = s.tileGapY;
+  el.tileAngle.value = s.tileAngle;
+
+  el.logoSize.value = s.logoSize;
+  el.logoOpacity.value = s.logoOpacity;
+  el.logoPos.value = s.logoPos;
+  el.logoTileGapX.value = s.logoTileGapX;
+  el.logoTileGapY.value = s.logoTileGapY;
+  el.logoTileAngle.value = s.logoTileAngle;
+
+  updateAllRangeLabels();
+  syncCheckboxes();
+  syncTileExtras();
+
+  if (s.logoDataURL) {
+    try {
+      await setLogoFromDataURL(s.logoDataURL, 'Preset Logo');
+    } catch (e) {
+      clearLogoUI();
+    }
+  } else {
+    clearLogoUI();
+  }
+}
+
+function updateAllRangeLabels() {
+  el.wmSizeVal.textContent = el.wmSize.value + 'px';
+  el.wmOpacityVal.textContent = el.wmOpacity.value + '%';
+  el.tileGapXVal.textContent = el.tileGapX.value + 'px';
+  el.tileGapYVal.textContent = el.tileGapY.value + 'px';
+  el.tileAngleVal.textContent = el.tileAngle.value + '°';
+
+  el.logoSizeVal.textContent = el.logoSize.value + 'px';
+  el.logoOpacityVal.textContent = el.logoOpacity.value + '%';
+  el.logoTileGapXVal.textContent = el.logoTileGapX.value + 'px';
+  el.logoTileGapYVal.textContent = el.logoTileGapY.value + 'px';
+  el.logoTileAngleVal.textContent = el.logoTileAngle.value + '°';
+}
+
+function savePresetsToStorage() {
+  localStorage.setItem('watermarkPresets', JSON.stringify(presets));
+}
+
+function renderPresets() {
+  el.presetList.innerHTML = '';
+
+  if (!presets.length) {
+    el.presetList.innerHTML = '<div class="empty-list">Belum ada preset tersimpan.</div>';
+    el.deletePresetBtn.disabled = true;
+    el.exportPresetBtn.disabled = true;
+    return;
+  }
+
+  presets.forEach((preset, idx) => {
+    const item = document.createElement('div');
+    item.className = 'preset-item' + (idx === activePresetIdx ? ' active' : '');
+
+    const name = document.createElement('div');
+    name.className = 'preset-name';
+    name.textContent = preset.name || 'Untitled Preset';
+
+    const actions = document.createElement('div');
+    actions.className = 'preset-item-actions';
+
+    const useBtn = document.createElement('button');
+    useBtn.className = 'icon-btn';
+    useBtn.type = 'button';
+    useBtn.title = 'Load preset';
+    useBtn.innerHTML = '<i class="ti ti-player-play"></i>';
+    useBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await loadPresetByIndex(idx);
+    });
+
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'icon-btn';
+    exportBtn.type = 'button';
+    exportBtn.title = 'Export preset';
+    exportBtn.innerHTML = '<i class="ti ti-download"></i>';
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportPresetByIndex(idx);
+    });
+
+    actions.appendChild(useBtn);
+    actions.appendChild(exportBtn);
+
+    item.appendChild(name);
+    item.appendChild(actions);
+
+    item.addEventListener('click', async () => {
+      await loadPresetByIndex(idx);
+    });
+
+    el.presetList.appendChild(item);
+  });
+
+  el.deletePresetBtn.disabled = activePresetIdx < 0;
+  el.exportPresetBtn.disabled = activePresetIdx < 0;
+}
+
+function makePresetObject(name, settings) {
+  return {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    name: name || 'Untitled Preset',
+    settings
+  };
+}
+
+function savePreset(name) {
+  const preset = makePresetObject(name, getCurrentSettings());
+
+  if (activePresetIdx >= 0) {
+    presets[activePresetIdx] = preset;
+  } else {
+    presets.unshift(preset);
+    activePresetIdx = 0;
+  }
+
+  savePresetsToStorage();
+  renderPresets();
+  closeModal();
+  setStatus('Preset berhasil disimpan!');
+}
+
+async function loadPresetByIndex(idx) {
+  if (!presets[idx]) return;
+  activePresetIdx = idx;
+  await applySettings(presets[idx].settings);
+  renderPresets();
+  setStatus('Preset loaded: ' + presets[idx].name);
+}
+
+function exportPresetByIndex(idx) {
+  if (!presets[idx]) return;
+  const preset = presets[idx];
+  const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileSafeName(preset.name) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  setStatus('Preset berhasil diexport!');
+}
+
+function deletePreset() {
+  if (activePresetIdx < 0 || !presets[activePresetIdx]) return;
+  if (!confirm('Delete preset ini?')) return;
+
+  presets.splice(activePresetIdx, 1);
+  activePresetIdx = -1;
+  savePresetsToStorage();
+  renderPresets();
+  setStatus('Preset dihapus');
+}
+
+async function importPresetFile(file) {
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+
+    if (Array.isArray(parsed)) {
+      const valid = parsed.filter(p => p && p.settings);
+      if (!valid.length) {
+        setStatus('File preset tidak valid');
+        return;
+      }
+      presets = [...valid, ...presets];
+      activePresetIdx = 0;
+      savePresetsToStorage();
+      renderPresets();
+      await applySettings(valid[0].settings);
+      setStatus(valid.length + ' preset berhasil diimport!');
+      return;
+    }
+
+    if (parsed && parsed.settings) {
+      presets.unshift(parsed);
+      activePresetIdx = 0;
+      savePresetsToStorage();
+      renderPresets();
+      await applySettings(parsed.settings);
+      setStatus('Preset "' + (parsed.name || 'Untitled') + '" berhasil diimport!');
+      return;
+    }
+
+    setStatus('File preset tidak valid');
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal load preset');
+  }
+}
+
+/* =========================
+   QUEUE / CANVAS
+========================= */
+function addToQueue(items) {
+  if (!items?.length) return;
+
+  const wasEmpty = queue.length === 0;
+
+  items.forEach(item => {
+    queue.push({
+      id: Math.random().toString(36).slice(2),
+      originalSrc: item.src,
+      processedSrc: null,
+      done: false,
+      name: item.name || ('image_' + (queue.length + 1))
+    });
+  });
+
+  renderQueue();
+  if (wasEmpty && queue.length > 0) setActive(0);
+  syncButtons();
+  setStatus(items.length + ' gambar ditambahkan');
+}
+
+function renderQueue() {
+  el.queueStrip.innerHTML = '';
+
+  if (!queue.length) {
+    el.queueLabel.textContent = 'Belum ada gambar';
+    return;
+  }
+
+  el.queueLabel.textContent = `Total ${queue.length} gambar`;
+
+  queue.forEach((item, i) => {
+    const box = document.createElement('div');
+    box.className = 'queue-thumb' + (i === activeIdx ? ' active' : '') + (item.done ? ' done' : '');
+
+    const img = document.createElement('img');
+    img.src = item.processedSrc || item.originalSrc;
+    img.alt = item.name || 'queue image';
+
+    const del = document.createElement('button');
+    del.className = 'q-del';
+    del.type = 'button';
+    del.innerHTML = '&times;';
+    del.title = 'Remove';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeFromQueue(i);
+    });
+
+    box.appendChild(img);
+    box.appendChild(del);
+    box.addEventListener('click', () => setActive(i));
+
+    el.queueStrip.appendChild(box);
+  });
+
+  const add = document.createElement('div');
+  add.className = 'queue-add';
+  add.innerHTML = '+';
+  add.title = 'Add more images';
+  add.addEventListener('click', () => el.fileInput.click());
+  el.queueStrip.appendChild(add);
+}
+
+function removeFromQueue(i) {
+  queue.splice(i, 1);
+
+  if (!queue.length) {
+    activeIdx = -1;
+    showEmpty();
+  } else {
+    if (activeIdx === i) {
+      activeIdx = Math.min(i, queue.length - 1);
+      setActive(activeIdx);
+    } else if (activeIdx > i) {
+      activeIdx--;
+      renderQueue();
+    } else {
+      renderQueue();
+    }
+  }
+
+  syncButtons();
+}
+
+function showEmpty() {
+  el.mainCanvas.style.display = 'none';
+  el.emptyState.style.display = '';
+  renderQueue();
+}
+
+async function showCanvasFromSrc(src) {
+  const img = await loadImage(src);
+  const { width, height } = fitCanvasSize(
+    img.width,
+    img.height,
+    Math.min(window.innerWidth - 56, 900),
+    Math.min(window.innerHeight * 0.62, 650)
+  );
+  el.mainCanvas.width = width;
+  el.mainCanvas.height = height;
+  ctx.clearRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+  el.mainCanvas.style.display = 'block';
+  el.emptyState.style.display = 'none';
+}
+
+async function setActive(i) {
+  if (!queue[i]) return;
+  activeIdx = i;
+  renderQueue();
+  const item = queue[i];
+  await showCanvasFromSrc(item.processedSrc || item.originalSrc);
+  syncButtons();
+}
+
+/* =========================
+   WATERMARK DRAWING
+========================= */
+function drawTextWatermark(tCtx, W, H) {
+  if (!el.chkTeks.checked) return;
+  const text = el.wmText.value.trim();
+  if (!text) return;
+
+  const size = Number(el.wmSize.value);
+  const opacity = Number(el.wmOpacity.value) / 100;
+  const pos = el.wmPos.value;
+  const font = el.wmFont.value;
+  const pad = 16;
+
+  tCtx.save();
+  tCtx.font = `bold ${size}px ${font}`;
+  tCtx.fillStyle = el.wmColor.value;
+
+  if (el.wmShadow.value === 'dark') {
+    tCtx.shadowColor = 'rgba(0,0,0,.85)';
+    tCtx.shadowBlur = 6;
+    tCtx.shadowOffsetX = 1;
+    tCtx.shadowOffsetY = 1;
+  } else if (el.wmShadow.value === 'light') {
+    tCtx.shadowColor = 'rgba(255,255,255,.85)';
+    tCtx.shadowBlur = 6;
+    tCtx.shadowOffsetX = 1;
+    tCtx.shadowOffsetY = 1;
+  }
+
+  const textWidth = tCtx.measureText(text).width;
+
+  if (pos === 'tile') {
+    const gapX = Number(el.tileGapX.value);
+    const gapY = Number(el.tileGapY.value);
+    const angle = Number(el.tileAngle.value) * Math.PI / 180;
+    const stepX = textWidth + gapX;
+    const stepY = size + gapY;
+
+    tCtx.globalAlpha = opacity * 0.45;
+
+    for (let y = -stepY; y < H + stepY * 2; y += stepY) {
+      for (let x = -stepX; x < W + stepX * 2; x += stepX) {
+        tCtx.save();
+        tCtx.translate(x, y);
+        tCtx.rotate(angle);
+        tCtx.fillText(text, 0, 0);
+        tCtx.restore();
+      }
+    }
+  } else {
+    tCtx.globalAlpha = opacity;
+    let x = 0, y = 0;
+
+    if (pos === 'br') {
+      x = W - textWidth - pad;
+      y = H - pad;
+    } else if (pos === 'bl') {
+      x = pad;
+      y = H - pad;
+    } else if (pos === 'tr') {
+      x = W - textWidth - pad;
+      y = size + pad;
+    } else if (pos === 'tl') {
+      x = pad;
+      y = size + pad;
+    } else {
+      x = (W - textWidth) / 2;
+      y = H / 2 + size / 3;
+    }
+
+    tCtx.fillText(text, x, y);
+  }
+
+  tCtx.restore();
+}
+
+function drawLogoWatermark(tCtx, W, H) {
+  if (!el.chkLogo.checked || !logoImage) return;
+
+  const logoW = Number(el.logoSize.value);
+  const logoH = Math.round(logoW * logoImage.height / logoImage.width);
+  const opacity = Number(el.logoOpacity.value) / 100;
+  const pos = el.logoPos.value;
+  const pad = 16;
+
+  tCtx.save();
+
+  if (pos === 'tile') {
+    const gapX = Number(el.logoTileGapX.value);
+    const gapY = Number(el.logoTileGapY.value);
+    const angle = Number(el.logoTileAngle.value) * Math.PI / 180;
+    const stepX = logoW + gapX;
+    const stepY = logoH + gapY;
+
+    tCtx.globalAlpha = opacity * 0.55;
+
+    for (let y = -logoH; y < H + stepY; y += stepY) {
+      for (let x = -logoW; x < W + stepX; x += stepX) {
+        tCtx.save();
+        tCtx.translate(x + logoW / 2, y + logoH / 2);
+        tCtx.rotate(angle);
+        tCtx.drawImage(logoImage, -logoW / 2, -logoH / 2, logoW, logoH);
+        tCtx.restore();
+      }
+    }
+  } else {
+    tCtx.globalAlpha = opacity;
+    let x = 0, y = 0;
+
+    if (pos === 'br') {
+      x = W - logoW - pad;
+      y = H - logoH - pad;
+    } else if (pos === 'bl') {
+      x = pad;
+      y = H - logoH - pad;
+    } else if (pos === 'tr') {
+      x = W - logoW - pad;
+      y = pad;
+    } else if (pos === 'tl') {
+      x = pad;
+      y = pad;
+    } else {
+      x = W / 2 - logoW / 2;
+      y = H / 2 - logoH / 2;
+    }
+
+    tCtx.drawImage(logoImage, x, y, logoW, logoH);
+  }
+
+  tCtx.restore();
+}
+
+async function renderProcessedDataURL(originalSrc) {
+  const img = await loadImage(originalSrc);
+  const c = document.createElement('canvas');
+  c.width = img.width;
+  c.height = img.height;
+  const cctx = c.getContext('2d');
+
+  cctx.drawImage(img, 0, 0);
+  drawTextWatermark(cctx, c.width, c.height);
+  drawLogoWatermark(cctx, c.width, c.height);
+
+  return c.toDataURL('image/jpeg', 0.92);
+}
+
+async function ensureProcessed(item) {
+  if (item.processedSrc) return item.processedSrc;
+  item.processedSrc = await renderProcessedDataURL(item.originalSrc);
+  return item.processedSrc;
+}
+
+/* =========================
+   APPLY / SAVE / SHARE
+========================= */
+async function applyToActive() {
+  if (activeIdx < 0 || !queue[activeIdx]) return;
+  try {
+    busy = true;
+    syncButtons();
+    updateProgress(20, 'Applying watermark...');
+    const src = await ensureProcessed(queue[activeIdx]);
+    updateProgress(100, 'Done');
+    await showCanvasFromSrc(src);
+    renderQueue();
+    setStatus('Watermark berhasil di-apply!');
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal apply watermark');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+async function applyToAll() {
+  if (!queue.length || busy) return;
+  try {
+    busy = true;
+    syncButtons();
+
+    for (let i = 0; i < queue.length; i++) {
+      const pct = Math.round((i / queue.length) * 100);
+      updateProgress(pct, `Processing ${i + 1} / ${queue.length}`);
+      await ensureProcessed(queue[i]);
+    }
+
+    updateProgress(100, 'Semua selesai');
+    renderQueue();
+    if (activeIdx >= 0) await showCanvasFromSrc(queue[activeIdx].processedSrc || queue[activeIdx].originalSrc);
+    setStatus(`Berhasil apply ke ${queue.length} gambar!`);
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal apply all');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+function addToGallery(dataURL, filename) {
+  gallery.unshift({ dataURL, filename });
+  renderGallery();
+}
+
+function renderGallery() {
+  el.galleryCount.textContent = gallery.length;
+  el.galleryGrid.innerHTML = '';
+
+  if (!gallery.length) {
+    el.galleryGrid.innerHTML = '<div class="empty-list" style="grid-column:1/-1;">Belum ada hasil tersimpan.</div>';
+    return;
+  }
+
+  gallery.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'gallery-item';
+
+    const imageBox = document.createElement('div');
+    imageBox.className = 'gallery-image';
+
+    const img = document.createElement('img');
+    img.src = item.dataURL;
+    img.alt = item.filename;
+    img.addEventListener('click', () => {
+      addToQueue([{ src: item.dataURL, name: item.filename }]);
+      setStatus('Gambar dari gallery dimasukkan ke queue');
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'gallery-actions';
+
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'gallery-action-btn';
+    shareBtn.type = 'button';
+    shareBtn.title = 'Share';
+    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await shareDataEntries([{ src: item.dataURL, filename: item.filename }], false);
+    });
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'gallery-action-btn';
+    downloadBtn.type = 'button';
+    downloadBtn.title = 'Download';
+    downloadBtn.innerHTML = '<i class="ti ti-download"></i>';
+    downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadDataURL(item.dataURL, item.filename);
+    });
+
+    actions.appendChild(shareBtn);
+    actions.appendChild(downloadBtn);
+    imageBox.appendChild(img);
+    imageBox.appendChild(actions);
+
+    const caption = document.createElement('div');
+    caption.className = 'gallery-caption';
+    caption.textContent = item.filename;
+
+    card.appendChild(imageBox);
+    card.appendChild(caption);
+
+    el.galleryGrid.appendChild(card);
+  });
+}
+
+function downloadDataURL(src, filename) {
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function doDownloadAndGallery(src, filename) {
+  downloadDataURL(src, filename);
+  addToGallery(src, filename);
+}
+
+async function saveActive() {
+  if (activeIdx < 0 || !queue[activeIdx] || busy) return;
+  try {
+    busy = true;
+    syncButtons();
+    updateProgress(35, 'Saving...');
+    const item = queue[activeIdx];
+    const src = await ensureProcessed(item);
+    const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}.jpg`;
+    doDownloadAndGallery(src, filename);
+    item.done = true;
+    renderQueue();
+    updateProgress(100, 'Saved');
+    setStatus('Gambar berhasil disimpan!');
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal save gambar');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+async function saveAll() {
+  if (!queue.length || busy) return;
+  try {
+    busy = true;
+    syncButtons();
+
+    for (let i = 0; i < queue.length; i++) {
+      updateProgress(Math.round((i / queue.length) * 100), `Saving ${i + 1} / ${queue.length}`);
+      const item = queue[i];
+      const src = await ensureProcessed(item);
+      const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}_${i + 1}.jpg`;
+      doDownloadAndGallery(src, filename);
+      item.done = true;
+      renderQueue();
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    updateProgress(100, 'Semua tersimpan');
+    setStatus(`${queue.length} gambar berhasil disimpan!`);
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal save all');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+async function dataURLToFile(dataURL, filename) {
+  const res = await fetch(dataURL);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+}
+
+async function shareDataEntries(entries, isBulk = false) {
+  if (!entries.length) {
+    setStatus('Tidak ada gambar untuk dishare');
+    return;
+  }
+
+  try {
+    if (navigator.share && navigator.canShare) {
+      const files = [];
+      for (const item of entries) {
+        files.push(await dataURLToFile(item.src, item.filename || 'watermarked.jpg'));
+      }
+
+      if (navigator.canShare({ files })) {
+        await navigator.share({
+          title: isBulk ? 'Watermarked Images' : 'Watermarked Image',
+          text: isBulk ? 'Check out my watermarked images!' : 'Check out my watermarked image!',
+          files
+        });
+        setStatus(isBulk ? `${files.length} gambar berhasil dishare!` : 'Gambar berhasil dishare!');
+        return;
+      }
+    }
+
+    // fallback
+    entries.forEach(item => downloadDataURL(item.src, item.filename || 'watermarked.jpg'));
+    setStatus('Share tidak didukung di device ini. File didownload sebagai pengganti.');
+  } catch (err) {
+    console.warn(err);
+    setStatus('Share dibatalkan');
+  }
+}
+
+async function shareActive() {
+  if (activeIdx < 0 || !queue[activeIdx] || busy) return;
+  try {
+    busy = true;
+    syncButtons();
+    updateProgress(30, 'Preparing share...');
+    const item = queue[activeIdx];
+    const src = await ensureProcessed(item);
+    const filename = `${fileSafeName(item.name)}_watermarked.jpg`;
+    updateProgress(100, 'Ready to share');
+    await shareDataEntries([{ src, filename }], false);
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal share gambar');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+async function shareAll() {
+  if (!queue.length || busy) return;
+  try {
+    busy = true;
+    syncButtons();
+    const entries = [];
+
+    for (let i = 0; i < queue.length; i++) {
+      updateProgress(Math.round((i / queue.length) * 100), `Preparing ${i + 1} / ${queue.length}`);
+      const item = queue[i];
+      const src = await ensureProcessed(item);
+      entries.push({
+        src,
+        filename: `${fileSafeName(item.name)}_watermarked_${i + 1}.jpg`
+      });
+    }
+
+    updateProgress(100, 'Ready to share');
+    await shareDataEntries(entries, true);
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal share semua');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+// ── SPLASH SCREEN ──
+window.addEventListener('load', () => {
+  const splash = document.getElementById('splashScreen');
+  const app = document.querySelector('.app');
+
+  // logo loading 2 detik
+  setTimeout(() => {
+    splash.classList.add('hide');
+    app.classList.add('app-ready');
+  }, 4000);
+
+  // hapus splash dari DOM setelah fade out selesai
+  setTimeout(() => {
+    splash.remove();
+  }, 2800);
+});
+/* =========================
+   CAMERA
+========================= */
+async function openCamera() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' },
+      audio: false
+    });
+    el.camVideo.srcObject = camStream;
+    el.camSection.classList.add('show');
+    setStatus('Camera siap dipakai', 0);
+  } catch (err) {
+    console.error(err);
+    setStatus('Izin camera ditolak / tidak tersedia', 5000);
+  }
+}
+
+function stopCamera() {
+  if (camStream) {
+    camStream.getTracks().forEach(track => track.stop());
+    camStream = null;
+  }
+  el.camSection.classList.remove('show');
+}
+
+function capturePhoto(closeAfter) {
+  const c = document.createElement('canvas');
+  c.width = el.camVideo.videoWidth || 640;
+  c.height = el.camVideo.videoHeight || 480;
+  c.getContext('2d').drawImage(el.camVideo, 0, 0);
+  addToQueue([{ src: c.toDataURL('image/jpeg', 0.95), name: 'camera_capture.jpg' }]);
+  if (closeAfter) stopCamera();
+}
+
+/* =========================
+   EVENTS
+========================= */
+el.fileInput.addEventListener('change', async () => {
+  if (!el.fileInput.files?.length) return;
+  setStatus(`Reading ${el.fileInput.files.length} file...`, 0);
+  const files = await readFilesSequential(el.fileInput.files);
+  el.fileInput.value = '';
+  if (files.length) addToQueue(files);
+  else setStatus('Tidak ada file valid');
+});
+
+el.camBtn.addEventListener('click', openCamera);
+el.closeCamBtn.addEventListener('click', stopCamera);
+el.snapBtn.addEventListener('click', () => capturePhoto(true));
+el.snapAddBtn.addEventListener('click', () => capturePhoto(false));
+
+el.clearQueueBtn.addEventListener('click', () => {
+  queue = [];
+  activeIdx = -1;
+  showEmpty();
+  syncButtons();
+  setStatus('Queue dibersihkan');
+});
+
+el.loadPresetBtn.addEventListener('click', () => {
+  el.presetFileInput.click();
+});
+
+el.presetFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  await importPresetFile(file);
+  el.presetFileInput.value = '';
+});
+
+el.savePresetBtn.addEventListener('click', () => {
+  el.presetNameInput.value = activePresetIdx >= 0 && presets[activePresetIdx]
+    ? presets[activePresetIdx].name
+    : '';
+  showModal(el.savePresetModal);
+});
+
+el.cancelPresetBtn.addEventListener('click', closeModal);
+
+el.confirmSavePresetBtn.addEventListener('click', () => {
+  const name = el.presetNameInput.value.trim();
+  if (!name) {
+    setStatus('Masukkan nama preset dulu');
+    return;
+  }
+  savePreset(name);
+});
+
+el.newPresetBtn.addEventListener('click', async () => {
+  activePresetIdx = -1;
+  await applySettings(DEFAULT_SETTINGS);
+  renderPresets();
+  setStatus('Form preset direset');
+});
+
+el.exportPresetBtn.addEventListener('click', () => {
+  if (activePresetIdx >= 0) exportPresetByIndex(activePresetIdx);
+  else setStatus('Pilih preset dulu');
+});
+
+el.deletePresetBtn.addEventListener('click', deletePreset);
+
+el.logoInput.addEventListener('change', async () => {
+  const file = el.logoInput.files[0];
+  if (!file) return;
+  try {
+    const dataURL = await readFileAsDataURL(file);
+    await setLogoFromDataURL(dataURL, file.name);
+    setStatus('Logo berhasil dimuat');
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal load logo');
+  }
+});
+
+el.clearLogoBtn.addEventListener('click', () => {
+  clearLogoUI();
+  setStatus('Logo dihapus');
+});
+
+el.chkTeks.addEventListener('change', syncCheckboxes);
+el.chkLogo.addEventListener('change', syncCheckboxes);
+el.wmPos.addEventListener('change', syncTileExtras);
+el.logoPos.addEventListener('change', syncTileExtras);
+
+bindRange(el.wmSize, el.wmSizeVal, v => v + 'px');
+bindRange(el.wmOpacity, el.wmOpacityVal, v => v + '%');
+bindRange(el.tileGapX, el.tileGapXVal, v => v + 'px');
+bindRange(el.tileGapY, el.tileGapYVal, v => v + 'px');
+bindRange(el.tileAngle, el.tileAngleVal, v => v + '°');
+bindRange(el.logoSize, el.logoSizeVal, v => v + 'px');
+bindRange(el.logoOpacity, el.logoOpacityVal, v => v + '%');
+bindRange(el.logoTileGapX, el.logoTileGapXVal, v => v + 'px');
+bindRange(el.logoTileGapY, el.logoTileGapYVal, v => v + 'px');
+bindRange(el.logoTileAngle, el.logoTileAngleVal, v => v + '°');
+
+el.btnApplyOne.addEventListener('click', applyToActive);
+el.btnApplyAll.addEventListener('click', applyToAll);
+el.btnSaveOne.addEventListener('click', saveActive);
+el.btnSaveAll.addEventListener('click', saveAll);
+el.btnShareOne.addEventListener('click', shareActive);
+el.btnShareAll.addEventListener('click', shareAll);
+
+window.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) closeModal();
+});
+
+/* =========================
+   INIT
+========================= */
+(async function init() {
+  await applySettings(DEFAULT_SETTINGS);
+  syncCheckboxes();
+  syncTileExtras();
+  renderPresets();
+  renderQueue();
+  renderGallery();
+  showEmpty();
+  syncButtons();
+})();
+</script>
+<script>navigator.serviceWorker.register("service-worker.js")</script> 
+</body>
+</html>
