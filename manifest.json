@@ -1,6 +1,6 @@
 {
   "name": "PIONEER Watermark App",
-  "short_name": "PIONEER",
+  "short_name": "PIONEER Watermark App",
   "description": "This application is used for PT PIONEER by Azam Alwafy.",
   "start_url": "./",
   "scope": "./",
