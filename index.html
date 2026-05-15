@@ -1080,7 +1080,7 @@ details[open] .summary-arrow{
           <div id="sectionTeks">
             <div class="field">
               <label for="wmText">Text</label>
-              <input class="input" type="text" id="wmText" value="© MyCollection 2024" placeholder="Masukkan teks watermark">
+              <input class="input" type="text" id="wmText" value="© PT PIONEER 2026" placeholder="Masukkan teks watermark">
             </div>
 
             <div class="row-2">
@@ -2055,9 +2055,12 @@ async function renderProcessedDataURL(originalSrc) {
   return c.toDataURL('image/jpeg', 0.92);
 }
 
-async function ensureProcessed(item) {
-  if (item.processedSrc) return item.processedSrc;
+async function ensureProcessed(item, force = false) {
+  if (item.processedSrc && !force) return item.processedSrc;
+
   item.processedSrc = await renderProcessedDataURL(item.originalSrc);
+  item.done = true;
+
   return item.processedSrc;
 }
 
@@ -2070,7 +2073,7 @@ async function applyToActive() {
     busy = true;
     syncButtons();
     updateProgress(20, 'Applying watermark...');
-    const src = await ensureProcessed(queue[activeIdx]);
+    const src = await ensureProcessed(queue[activeIdx], true);
     updateProgress(100, 'Done');
     await showCanvasFromSrc(src);
     renderQueue();
@@ -2094,7 +2097,7 @@ async function applyToAll() {
     for (let i = 0; i < queue.length; i++) {
       const pct = Math.round((i / queue.length) * 100);
       updateProgress(pct, `Processing ${i + 1} / ${queue.length}`);
-      await ensureProcessed(queue[i]);
+      await ensureProcessed(queue[i], true);
     }
 
     updateProgress(100, 'Semua selesai');
@@ -2259,31 +2262,83 @@ async function shareDataEntries(entries, isBulk = false) {
   }
 
   try {
-    if (navigator.share && navigator.canShare) {
-      const files = [];
-      for (const item of entries) {
-        files.push(await dataURLToFile(item.src, item.filename || 'watermarked.jpg'));
-      }
+    const files = [];
 
-      if (navigator.canShare({ files })) {
+    for (const item of entries) {
+      files.push(await dataURLToFile(item.src, item.filename || 'watermarked.jpg'));
+    }
+
+    // Share satu gambar: aman pakai native share
+    if (!isBulk && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({
+        title: 'Watermarked Image',
+        text: 'Check out my watermarked image!',
+        files
+      });
+      setStatus('Gambar berhasil dishare!');
+      return;
+    }
+
+    // Share banyak gambar: coba native share, tapi tidak semua app support
+    if (isBulk && navigator.share && navigator.canShare && navigator.canShare({ files })) {
+      try {
         await navigator.share({
-          title: isBulk ? 'Watermarked Images' : 'Watermarked Image',
-          text: isBulk ? 'Check out my watermarked images!' : 'Check out my watermarked image!',
+          title: 'Watermarked Images',
+          text: 'Check out my watermarked images!',
           files
         });
-        setStatus(isBulk ? `${files.length} gambar berhasil dishare!` : 'Gambar berhasil dishare!');
+
+        setStatus(`${files.length} gambar dikirim ke share menu. Kalau yang masuk cuma 1, app tujuan tidak support multi-file.`);
         return;
+      } catch (err) {
+        console.warn(err);
       }
     }
 
-    // fallback
+    // Fallback paling aman
     entries.forEach(item => downloadDataURL(item.src, item.filename || 'watermarked.jpg'));
-    setStatus('Share tidak didukung di device ini. File didownload sebagai pengganti.');
+    setStatus('Share all tidak didukung penuh. Semua gambar didownload sebagai pengganti.');
   } catch (err) {
     console.warn(err);
     setStatus('Share dibatalkan');
   }
 }
+function invalidateProcessed() {
+  queue.forEach(item => {
+    item.processedSrc = null;
+    item.done = false;
+  });
+
+  renderQueue();
+
+  if (activeIdx >= 0 && queue[activeIdx]) {
+    showCanvasFromSrc(queue[activeIdx].originalSrc);
+  }
+}
+
+[
+  el.chkTeks,
+  el.chkLogo,
+  el.wmText,
+  el.wmPos,
+  el.wmFont,
+  el.wmSize,
+  el.wmOpacity,
+  el.wmColor,
+  el.wmShadow,
+  el.tileGapX,
+  el.tileGapY,
+  el.tileAngle,
+  el.logoPos,
+  el.logoSize,
+  el.logoOpacity,
+  el.logoTileGapX,
+  el.logoTileGapY,
+  el.logoTileAngle
+].forEach(input => {
+  input.addEventListener('input', invalidateProcessed);
+  input.addEventListener('change', invalidateProcessed);
+});
 
 async function shareActive() {
   if (activeIdx < 0 || !queue[activeIdx] || busy) return;
