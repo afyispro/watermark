@@ -1360,7 +1360,7 @@ details[open] .summary-arrow{
 
       <div class="gallery-export-actions">
         <button class="btn" id="btnSaveAll" disabled>
-          <i class="ti ti-file-zip"></i> ZIP All
+          <i class="ti ti-file-zip"></i> Save All
         </button>
 
         <button class="btn btn-primary" id="btnShareAll" disabled>
@@ -3256,6 +3256,16 @@ function renderGallery() {
       openDeleteGalleryModal(index);
     });
 
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'gallery-action-btn';
+    shareBtn.type = 'button';
+    shareBtn.title = 'Share';
+    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await shareGalleryItem(item);
+    });
+
 
     if (item.type === 'text') {
       const txtBox = document.createElement('div');
@@ -3293,6 +3303,7 @@ function renderGallery() {
       downloadGalleryItem(item);
     });
 
+    actions.appendChild(shareBtn);
     actions.appendChild(downloadBtn);
 
     imageBox.appendChild(deleteBtn);
