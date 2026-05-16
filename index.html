@@ -1157,7 +1157,7 @@ details[open] .summary-arrow{
 			</div>
         <div>
           <h1>Product Images Collector</h1>
-          <p>Oleh Azam Alwafy</p>
+          <p>Oleh Muhammad Azam Alwafy</p>
         </div>
       </div>
     </div>
@@ -1966,14 +1966,18 @@ async function shareReadyZip() {
     return;
   }
 
+  // 1. Ubah Blob ZIP menjadi objek File resmi (Ini sudah ada di kode Anda)
   const zipFile = new File(
     [pendingShareZipBlob],
     pendingShareZipName,
     { type: 'application/zip' }
   );
 
+  // 2. Tambahkan title dan text agar browser tidak mengira ini file spam/berbahaya
   const shareData = {
-    files: [zipFile]
+    files: [zipFile],
+    title: 'Product Images ZIP',
+    text: 'Berikut adalah kumpulan foto produk.'
   };
 
   console.log('ZIP share debug:', {
