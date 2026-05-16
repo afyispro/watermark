@@ -635,6 +635,34 @@ details[open] .summary-arrow{
   border-radius:16px;
   padding:12px;
 }
+.barcode-warning{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:#fff7ed;
+  border:1px solid #fed7aa;
+  color:#9a3412;
+}
+
+.barcode-warning.show{
+  display:flex;
+}
+
+.barcode-warning strong{
+  display:block;
+  font-size:13px;
+}
+
+.barcode-warning span{
+  display:block;
+  font-size:12px;
+  color:#c2410c;
+  margin-top:2px;
+}
 
 .barcode-head{
   display:flex;
@@ -1008,7 +1036,16 @@ details[open] .summary-arrow{
     </div>
 
     <input class="input barcode-value" id="barcodeValue" readonly placeholder="Hasil barcode akan muncul di sini...">
+      <div class="barcode-warning" id="barcodeWarning">
+        <div>
+          <strong>Save TXT first!</strong>
+          <span>Barcode belum disimpan ke Gallery.</span>
+        </div>
 
+        <button class="icon-btn" id="ignoreBarcodeBtn" type="button" title="Ignore barcode">
+          <i class="ti ti-x"></i>
+        </button>
+      </div>
     <div class="barcode-actions">
       <button class="btn btn-soft" id="copyBarcodeBtn" type="button" disabled>
         <i class="ti ti-copy"></i> Copy
@@ -1421,6 +1458,8 @@ let barcodeDetector = null;
 let barcodeScanTimer = null;
 let lastBarcodeValue = '';
 let lastBarcodeFormat = '';
+let barcodeSaved = false;
+let ignoreBarcodeUntil = 0;
 let flashOn = false;
 let busy = false;
 let savedCount = 0;
@@ -1442,9 +1481,12 @@ const el = {
   snapAddBtn: document.getElementById('snapAddBtn'),
   closeCamBtn: document.getElementById('closeCamBtn'),
   flashBtn: document.getElementById('flashBtn'),
+
   barcodePanel: document.getElementById('barcodePanel'),
   barcodeValue: document.getElementById('barcodeValue'),
   barcodeFormat: document.getElementById('barcodeFormat'),
+  barcodeWarning: document.getElementById('barcodeWarning'),
+  ignoreBarcodeBtn: document.getElementById('ignoreBarcodeBtn'),
   copyBarcodeBtn: document.getElementById('copyBarcodeBtn'),
   downloadBarcodeBtn: document.getElementById('downloadBarcodeBtn'),
 
@@ -1734,6 +1776,7 @@ async function initBarcodeDetector() {
 function setBarcodeResult(value, format) {
   lastBarcodeValue = value || '';
   lastBarcodeFormat = format || '';
+  barcodeSaved = false;
 
   el.barcodeValue.value = lastBarcodeValue;
   el.barcodeFormat.textContent = lastBarcodeFormat
@@ -1743,10 +1786,44 @@ function setBarcodeResult(value, format) {
   el.copyBarcodeBtn.disabled = !lastBarcodeValue;
   el.downloadBarcodeBtn.disabled = !lastBarcodeValue;
 
+  hideBarcodeWarning();
   syncButtons();
 }
 
+function showBarcodeWarning() {
+  if (el.barcodeWarning) {
+    el.barcodeWarning.classList.add('show');
+  }
+}
+
+function hideBarcodeWarning() {
+  if (el.barcodeWarning) {
+    el.barcodeWarning.classList.remove('show');
+  }
+}
+
+function clearBarcodeResult() {
+  lastBarcodeValue = '';
+  lastBarcodeFormat = '';
+  barcodeSaved = false;
+
+  el.barcodeValue.value = '';
+  el.barcodeFormat.textContent = 'Arahkan kamera ke barcode';
+  el.copyBarcodeBtn.disabled = true;
+  el.downloadBarcodeBtn.disabled = true;
+
+  hideBarcodeWarning();
+  syncButtons();
+}
+
+function ignoreBarcodeResult() {
+  ignoreBarcodeUntil = Date.now() + 2000;
+  clearBarcodeResult();
+  setStatus('Barcode diabaikan. Scanner siap membaca lagi.');
+}
+
 async function scanBarcodeLoop() {
+  if (Date.now() < ignoreBarcodeUntil) return;
   if (!camStream || !barcodeDetector || !el.camVideo.videoWidth) return;
 
   try {
@@ -1800,7 +1877,12 @@ function downloadBarcodeTxt() {
     filename
   });
 
+  barcodeSaved = true;
+  hideBarcodeWarning();
+
   setStatus('Barcode TXT masuk ke Gallery!');
+
+  clearBarcodeResult();
 }
 
 async function copyBarcodeValue() {
@@ -1853,16 +1935,16 @@ async function toggleFlash() {
 
 function syncButtons() {
   const hasQueue = queue.length > 0;
-  const hasAnyExport = queue.length > 0 || gallery.length > 0 || !!lastBarcodeValue;
+  const hasGallery = gallery.length > 0;
 
   el.btnApplyOne.disabled = busy || !hasQueue || activeIdx < 0;
   el.btnApplyAll.disabled = busy || !hasQueue;
 
   el.btnSaveOne.disabled = busy || !hasQueue || activeIdx < 0;
 
-  el.btnSaveAll.disabled = busy || !hasAnyExport;
+  el.btnSaveAll.disabled = busy || !hasGallery;
   el.btnShareOne.disabled = busy || !hasQueue || activeIdx < 0;
-  el.btnShareAll.disabled = busy || !hasAnyExport;
+  el.btnShareAll.disabled = busy || !hasGallery;
 
   el.clearQueueBtn.disabled = busy || !hasQueue;
 }
@@ -2760,33 +2842,11 @@ function doSaveToGallery(src, filename) {
   });
 }
 
-async function saveActive() {
-  if (activeIdx < 0 || !queue[activeIdx] || busy) return;
-  try {
-    busy = true;
-    syncButtons();
-    updateProgress(35, 'Saving...');
-    const item = queue[activeIdx];
-    const src = await ensureProcessed(item);
-    const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}.jpg`;
-    doDownloadAndGallery(src, filename);
-    item.done = true;
-    renderQueue();
-    updateProgress(100, 'Saved');
-    setStatus('Gambar berhasil disimpan!');
-  } catch (err) {
-    console.error(err);
-    setStatus('Gagal save gambar');
-  } finally {
-    busy = false;
-    syncButtons();
-    hideProgress();
-  }
-}
+
 
 async function saveAll() {
-  if ((!queue.length && !gallery.length && !lastBarcodeValue) || busy) {
-    setStatus('Belum ada file untuk dibuat ZIP');
+  if (!gallery.length || busy) {
+    setStatus('Gallery masih kosong. Save file ke Gallery dulu.');
     return;
   }
 
@@ -2794,18 +2854,18 @@ async function saveAll() {
     busy = true;
     syncButtons();
 
-    updateProgress(20, 'Membuat ZIP...');
+    updateProgress(20, 'Membuat ZIP dari Gallery...');
 
     const zipBlob = await buildAllZip();
-    const filename = `wtrmk_studio_export_${Date.now()}.zip`;
+    const filename = `wtrmk_studio_gallery_${Date.now()}.zip`;
 
     updateProgress(100, 'ZIP ready');
     downloadBlob(zipBlob, filename);
 
-    setStatus('Semua file berhasil dibuat ZIP!');
+    setStatus('Isi Gallery berhasil dibuat ZIP!');
   } catch (err) {
     console.error(err);
-    setStatus('Gagal membuat ZIP');
+    setStatus(err.message || 'Gagal membuat ZIP');
   } finally {
     busy = false;
     syncButtons();
@@ -2830,6 +2890,10 @@ async function buildAllZip() {
     throw new Error('JSZip belum dimuat. Pastikan script JSZip sudah ditambahkan.');
   }
 
+  if (!gallery.length) {
+    throw new Error('Gallery masih kosong.');
+  }
+
   const zip = new JSZip();
   const usedNames = new Set();
 
@@ -2849,35 +2913,20 @@ async function buildAllZip() {
     return finalName;
   }
 
-  // 1. Masukkan semua gambar dari queue
-  for (let i = 0; i < queue.length; i++) {
-    const item = queue[i];
-    const src = await ensureProcessed(item);
-    const filename = uniqueName(`${fileSafeName(item.name)}_watermarked_${i + 1}.jpg`);
-    await addDataURLToZip(zip, 'images', src, filename);
-  }
-
-  // 2. Masukkan semua item dari Gallery, termasuk barcode TXT
   for (const item of gallery) {
     if (item.type === 'text') {
-      zip.folder('barcodes').file(uniqueName(item.filename || 'barcode.txt'), item.text || '');
+      zip.folder('barcodes').file(
+        uniqueName(item.filename || 'barcode.txt'),
+        item.text || ''
+      );
     } else {
       await addDataURLToZip(
         zip,
-        'gallery',
+        'images',
         item.dataURL,
-        uniqueName(item.filename || `gallery_${Date.now()}.jpg`)
+        uniqueName(item.filename || `image_${Date.now()}.jpg`)
       );
     }
-  }
-
-  // 3. Kalau barcode terakhir belum sempat disave ke gallery, tetap masuk ZIP
-  if (lastBarcodeValue) {
-    const barcodeFilename = uniqueName(`${txtSafeName(lastBarcodeValue)}.txt`);
-    zip.folder('barcodes').file(
-      barcodeFilename,
-      makeBarcodeTxtContent(lastBarcodeValue, lastBarcodeFormat)
-    );
   }
 
   return zip.generateAsync({ type: 'blob' });
@@ -3020,8 +3069,8 @@ async function shareActive() {
 }
 
 async function shareAll() {
-  if ((!queue.length && !gallery.length && !lastBarcodeValue) || busy) {
-    setStatus('Belum ada file untuk dishare');
+  if (!gallery.length || busy) {
+    setStatus('Gallery masih kosong. Save file ke Gallery dulu.');
     return;
   }
 
@@ -3029,16 +3078,16 @@ async function shareAll() {
     busy = true;
     syncButtons();
 
-    updateProgress(20, 'Membuat ZIP untuk share...');
+    updateProgress(20, 'Membuat ZIP Gallery untuk share...');
 
     const zipBlob = await buildAllZip();
-    const filename = `wtrmk_studio_share_${Date.now()}.zip`;
+    const filename = `wtrmk_studio_gallery_share_${Date.now()}.zip`;
 
     updateProgress(100, 'ZIP ready');
     await shareOrDownloadZip(zipBlob, filename);
   } catch (err) {
     console.error(err);
-    setStatus('Gagal share ZIP');
+    setStatus(err.message || 'Gagal share ZIP');
   } finally {
     busy = false;
     syncButtons();
@@ -3125,9 +3174,6 @@ function capturePhoto(closeAfter) {
     return;
   }
 
-  const currentBarcodeValue = lastBarcodeValue;
-  const currentBarcodeFormat = lastBarcodeFormat;
-
   const c = document.createElement('canvas');
   c.width = el.camVideo.videoWidth || 640;
   c.height = el.camVideo.videoHeight || 480;
@@ -3143,14 +3189,20 @@ function capturePhoto(closeAfter) {
   if (closeAfter) {
     stopCamera();
     setStatus('Foto berhasil dicapture dan camera ditutup');
-  } else {
-    // biar barcode result nggak kosong setelah Capture & Continue
-    if (currentBarcodeValue) {
-      setBarcodeResult(currentBarcodeValue, currentBarcodeFormat);
-    }
-
-    setStatus('Foto berhasil dicapture. Camera tetap aktif.');
+    return;
   }
+
+  if (lastBarcodeValue && !barcodeSaved) {
+    showBarcodeWarning();
+    setStatus('Save TXT dulu atau tekan X untuk ignore barcode.', 5000);
+    return;
+  }
+
+  if (lastBarcodeValue && barcodeSaved) {
+    clearBarcodeResult();
+  }
+
+  setStatus('Foto berhasil dicapture. Camera tetap aktif.');
 }
 
 /* =========================
@@ -3170,6 +3222,7 @@ el.closeCamBtn.addEventListener('click', stopCamera);
 el.flashBtn.addEventListener('click', toggleFlash);
 el.copyBarcodeBtn.addEventListener('click', copyBarcodeValue);
 el.downloadBarcodeBtn.addEventListener('click', downloadBarcodeTxt);
+el.ignoreBarcodeBtn.addEventListener('click', ignoreBarcodeResult);
 el.snapBtn.addEventListener('click', () => capturePhoto(true));
 el.snapAddBtn.addEventListener('click', () => capturePhoto(false));
 
