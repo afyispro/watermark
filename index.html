@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Product Images Collector</title>
+<title>Product Images Collector V1</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="manifest" href="manifest.json" />
 <style>
@@ -1705,6 +1705,7 @@ let busy = false;
 let savedCount = 0;
 let gallery = [];
 let pendingShareZipBlob = null;
+let pendingShareZipFile = null;
 let pendingShareZipName = '';
 let pendingDeleteGalleryIndex = -1;
 let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
@@ -1948,57 +1949,78 @@ function downloadReadyZip() {
     return;
   }
 
-  try {
-    downloadBlob(pendingShareZipBlob, pendingShareZipName);
+  downloadBlob(pendingShareZipBlob, pendingShareZipName);
 
-    closeZipReadyModal();
+  closeZipReadyModal();
 
-    pendingShareZipBlob = null;
-    pendingShareZipName = '';
+  pendingShareZipBlob = null;
+  pendingShareZipFile = null;
+  pendingShareZipName = '';
 
-    setStatus('ZIP didownload!');
-  } catch (err) {
-    console.warn('Download ZIP gagal:', err);
-    setStatus('Download ditolak browser. Coba tekan tombol Download lagi.', 6000);
-  }
+  setStatus('ZIP didownload!');
 }
 
 async function shareReadyZip() {
-  if (!pendingShareZipBlob || !pendingShareZipName) {
+  if (!pendingShareZipFile) {
     setStatus('ZIP belum siap');
     return;
   }
 
+  const shareData = {
+    title: 'Product Images Collector Export',
+    text: 'Export Gallery dari Product Images Collector',
+    files: [pendingShareZipFile]
+  };
+
+  console.log('ZIP share debug:', {
+    isSecureContext: window.isSecureContext,
+    hasNavigatorShare: !!navigator.share,
+    hasCanShare: !!navigator.canShare,
+    fileName: pendingShareZipFile.name,
+    fileType: pendingShareZipFile.type,
+    fileSize: pendingShareZipFile.size,
+    canShare: navigator.canShare ? navigator.canShare(shareData) : null
+  });
+
+  if (!window.isSecureContext) {
+    setStatus('Share butuh HTTPS / secure context.');
+    return;
+  }
+
+  if (!navigator.share) {
+    setStatus('Browser ini belum support native share.');
+    return;
+  }
+
+  if (navigator.canShare && !navigator.canShare(shareData)) {
+    setStatus('Browser tidak menerima file ZIP ini. Coba Download ZIP.');
+    return;
+  }
+
   try {
-    const file = new File(
-      [pendingShareZipBlob],
-      pendingShareZipName,
-      { type: 'application/zip' }
-    );
-
-    if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
-      setStatus('Browser tidak support share ZIP. Klik Download ZIP saja.', 5000);
-      return;
-    }
-
-    await navigator.share({
-      title: 'Product Images Collector Export',
-      text: 'Export Gallery dari Product Images Collector',
-      files: [file]
-    });
+    await navigator.share(shareData);
 
     closeZipReadyModal();
+
     pendingShareZipBlob = null;
+    pendingShareZipFile = null;
     pendingShareZipName = '';
 
     setStatus('ZIP berhasil dishare!');
   } catch (err) {
-    console.warn('Share ZIP gagal/ditolak:', err);
+    console.error('Native ZIP share gagal:', err);
 
-    // PENTING:
-    // Jangan auto download di sini, karena browser bisa blok juga.
-    // Biarkan modal tetap kebuka supaya user klik Download manual.
-    setStatus('Share ditolak browser. Klik Download ZIP di popup.', 6000);
+    if (err.name === 'AbortError') {
+      setStatus('Share dibatalkan.');
+      return;
+    }
+
+    if (err.name === 'NotAllowedError') {
+      setStatus('Browser menolak share ZIP. Coba dari Chrome Android/PWA, atau pakai Download ZIP.', 7000);
+      return;
+    }
+
+    setStatus('Share ZIP gagal. Coba Download ZIP.', 6000);
   }
 }
 
@@ -3156,15 +3178,6 @@ function renderGallery() {
     const actions = document.createElement('div');
     actions.className = 'gallery-actions';
 
-    const shareBtn = document.createElement('button');
-    shareBtn.className = 'gallery-action-btn';
-    shareBtn.type = 'button';
-    shareBtn.title = 'Share';
-    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
-    shareBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await shareGalleryItem(item);
-    });
 
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'gallery-action-btn';
@@ -3176,7 +3189,6 @@ function renderGallery() {
       downloadGalleryItem(item);
     });
 
-    actions.appendChild(shareBtn);
     actions.appendChild(downloadBtn);
 
     imageBox.appendChild(deleteBtn);
@@ -3522,11 +3534,16 @@ async function shareAll() {
 
     pendingShareZipBlob = await buildAllZip();
     pendingShareZipName = `product_images_gallery_${Date.now()}.zip`;
+    pendingShareZipFile = new File(
+      [pendingShareZipBlob],
+      pendingShareZipName,
+      { type: 'application/zip' }
+    );
 
     updateProgress(100, 'ZIP ready');
 
     showModal(el.zipReadyModal);
-    setStatus('ZIP siap. Pilih Share ZIP atau Download ZIP.');
+    setStatus('ZIP siap. Klik Share ZIP atau Download.');
   } catch (err) {
     console.error(err);
     setStatus(err.message || 'Gagal membuat ZIP');
