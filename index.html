@@ -941,7 +941,11 @@ details[open] .summary-arrow{
     font-size: 13px;
   }
 }
-
+#scanToggleBtn.active{
+  background:#dcfce7;
+  border-color:#22c55e;
+  color:#166534;
+}
 
 @media (max-width: 420px){
   .header h1{font-size:20px}
@@ -1030,9 +1034,19 @@ details[open] .summary-arrow{
         <div class="barcode-sub" id="barcodeFormat">Arahkan kamera ke barcode</div>
       </div>
 
-      <button class="icon-btn" id="flashBtn" type="button" title="Flash">
-        <i class="ti ti-bolt"></i>
-      </button>
+      <div style="display:flex;gap:8px;">
+        <button class="icon-btn" id="scanToggleBtn" type="button" title="Start Scan">
+          <i class="ti ti-barcode"></i>
+        </button>
+
+        <button class="icon-btn" id="clearBarcodeBtn" type="button" title="Clear Barcode">
+          <i class="ti ti-x"></i>
+        </button>
+
+        <button class="icon-btn" id="flashBtn" type="button" title="Flash">
+          <i class="ti ti-bolt"></i>
+        </button>
+      </div>
     </div>
 
     <input class="input barcode-value" id="barcodeValue" readonly placeholder="Hasil barcode akan muncul di sini...">
@@ -1127,7 +1141,7 @@ details[open] .summary-arrow{
             <i class="ti ti-download"></i> Save
           </button>
           <button class="btn btn-primary" id="btnSaveAll" disabled>
-            <i class="ti ti-download"></i> ZIP All
+            <i class="ti ti-download"></i> Save All
           </button>
           <button class="btn" id="btnShareOne" disabled>
             <i class="ti ti-share"></i> Share
@@ -1460,6 +1474,7 @@ let lastBarcodeValue = '';
 let lastBarcodeFormat = '';
 let barcodeSaved = false;
 let ignoreBarcodeUntil = 0;
+let barcodeScannerEnabled = false;
 let flashOn = false;
 let busy = false;
 let savedCount = 0;
@@ -1487,6 +1502,8 @@ const el = {
   barcodeFormat: document.getElementById('barcodeFormat'),
   barcodeWarning: document.getElementById('barcodeWarning'),
   ignoreBarcodeBtn: document.getElementById('ignoreBarcodeBtn'),
+  scanToggleBtn: document.getElementById('scanToggleBtn'),
+  clearBarcodeBtn: document.getElementById('clearBarcodeBtn'),
   copyBarcodeBtn: document.getElementById('copyBarcodeBtn'),
   downloadBarcodeBtn: document.getElementById('downloadBarcodeBtn'),
 
@@ -1823,7 +1840,7 @@ function ignoreBarcodeResult() {
 }
 
 async function scanBarcodeLoop() {
-  if (Date.now() < ignoreBarcodeUntil) return;
+  if (!barcodeScannerEnabled) return;
   if (!camStream || !barcodeDetector || !el.camVideo.videoWidth) return;
 
   try {
@@ -1836,7 +1853,12 @@ async function scanBarcodeLoop() {
 
       if (value && value !== lastBarcodeValue) {
         setBarcodeResult(value, format);
-        setStatus('Barcode terbaca: ' + value, 2500);
+
+        // pause otomatis setelah kebaca
+        barcodeScannerEnabled = false;
+        updateScanButtonUI();
+
+        setStatus('Barcode terbaca. Save TXT atau clear dengan X.');
       }
     }
   } catch (err) {
@@ -1883,6 +1905,62 @@ function downloadBarcodeTxt() {
   setStatus('Barcode TXT masuk ke Gallery!');
 
   clearBarcodeResult();
+}
+
+function updateScanButtonUI() {
+  if (!el.scanToggleBtn) return;
+
+  el.scanToggleBtn.classList.toggle('active', barcodeScannerEnabled);
+  el.scanToggleBtn.title = barcodeScannerEnabled ? 'Stop Scan' : 'Start Scan';
+  el.scanToggleBtn.innerHTML = barcodeScannerEnabled
+    ? '<i class="ti ti-player-stop"></i>'
+    : '<i class="ti ti-barcode"></i>';
+
+  if (!lastBarcodeValue) {
+    el.barcodeFormat.textContent = barcodeScannerEnabled
+      ? 'Scanning... arahkan kamera ke barcode'
+      : 'Klik icon barcode untuk mulai scan';
+  }
+}
+
+function startManualBarcodeScan() {
+  if (!camStream) {
+    setStatus('Kamera belum aktif');
+    return;
+  }
+
+  barcodeScannerEnabled = true;
+  updateScanButtonUI();
+  setStatus('Scanner barcode aktif');
+}
+
+function stopManualBarcodeScan() {
+  barcodeScannerEnabled = false;
+  updateScanButtonUI();
+  setStatus('Scanner barcode berhenti');
+}
+
+function toggleManualBarcodeScan() {
+  if (barcodeScannerEnabled) {
+    stopManualBarcodeScan();
+  } else {
+    startManualBarcodeScan();
+  }
+}
+
+function clearBarcodeResult() {
+  lastBarcodeValue = '';
+  lastBarcodeFormat = '';
+
+  el.barcodeValue.value = '';
+  el.barcodeFormat.textContent = barcodeScannerEnabled
+    ? 'Scanning... arahkan kamera ke barcode'
+    : 'Klik icon barcode untuk mulai scan';
+
+  el.copyBarcodeBtn.disabled = true;
+  el.downloadBarcodeBtn.disabled = true;
+
+  syncButtons();
 }
 
 async function copyBarcodeValue() {
@@ -3139,14 +3217,21 @@ async function openCamera() {
 
     await el.camVideo.play();
 
+    barcodeScannerEnabled = false;
+    clearBarcodeResult();
+    updateScanButtonUI();
+
     startBarcodeScanner();
 
-    setStatus('Camera siap dipakai. Arahkan ke barcode.', 0);
+    setStatus('Camera siap. Klik icon barcode untuk mulai scan.', 0);
   } catch (err) {
     console.error(err);
     setStatus('Izin camera ditolak / tidak tersedia', 5000);
   }
 }
+el.scanToggleBtn.addEventListener('click', toggleManualBarcodeScan);
+el.clearBarcodeBtn.addEventListener('click', clearBarcodeResult);
+
 
 function stopCamera() {
   stopBarcodeScanner();
