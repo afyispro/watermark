@@ -1,6 +1,6 @@
 {
-  "name": "PIONEER Watermark App",
-  "short_name": "PIONEER Watermark App",
+  "name": "WTRMK Studio",
+  "short_name": "WTRMK Studio",
   "description": "This application is used for PT PIONEER by Azam Alwafy.",
   "start_url": "./",
   "scope": "./",
@@ -35,7 +35,7 @@
       "src": "home.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "description": "PIONEER Watermark App home screen"
+      "description": "WTRMK Studio home screen"
     }
   ],
   "prefer_related_applications": false,
