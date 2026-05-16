@@ -1,7 +1,7 @@
 {
-  "name": "WTRMK Studio",
-  "short_name": "WTRMK Studio",
-  "description": "This application is used for PT PIONEER by Azam Alwafy.",
+  "name": "Product Collector",
+  "short_name": "Product Collector",
+  "description": "This application is used for OFFICES by Azam Alwafy.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -12,19 +12,19 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "logo2.png",
+      "src": "logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo2.png",
+      "src": "logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo2.png",
+      "src": "logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -32,18 +32,18 @@
   ],
   "screenshots": [
     {
-      "src": "homenew.png",
+      "src": "home.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "description": "WTRMK Studio home screen"
+      "description": "Product Collector home screen"
     }
   ],
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "WTRMK Studio",
-      "short_name": "WTRMK Studio",
-      "description": "Open the watermark app",
+      "name": "Product Collector",
+      "short_name": "Product Collector",
+      "description": "Open the product collector app",
       "url": "./",
       "icons": [
         {
