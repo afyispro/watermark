@@ -946,6 +946,57 @@ details[open] .summary-arrow{
   border-color:#22c55e;
   color:#166534;
 }
+.gallery-delete-btn{
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:999px;
+  background:rgba(239,68,68,.94);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(0,0,0,.18);
+  z-index:5;
+}
+
+.gallery-delete-btn:hover{
+  background:#dc2626;
+}
+
+.txt-gallery-card{
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:16px;
+  text-align:center;
+  background:linear-gradient(135deg,#eff6ff,#dbeafe);
+  color:#1d4ed8;
+}
+
+.txt-gallery-card i{
+  font-size:46px;
+}
+
+.txt-gallery-card strong{
+  font-size:13px;
+  max-width:100%;
+  word-break:break-all;
+  color:#1e3a8a;
+}
+
+.txt-gallery-card span{
+  font-size:11px;
+  color:#64748b;
+}
 
 @media (max-width: 420px){
   .header h1{font-size:20px}
@@ -1138,7 +1189,7 @@ details[open] .summary-arrow{
             <i class="ti ti-sparkles"></i> Apply All
           </button>
           <button class="btn" id="btnSaveOne" disabled>
-            <i class="ti ti-download"></i> Save
+            <i class="ti ti-download"></i> Add to Gallery
           </button>
           <button class="btn btn-primary" id="btnSaveAll" disabled>
             <i class="ti ti-download"></i> Save All
@@ -1825,12 +1876,24 @@ function clearBarcodeResult() {
   barcodeSaved = false;
 
   el.barcodeValue.value = '';
-  el.barcodeFormat.textContent = 'Arahkan kamera ke barcode';
+  el.barcodeFormat.textContent = barcodeScannerEnabled
+    ? 'Scanning... arahkan kamera ke barcode'
+    : 'Klik icon barcode untuk mulai scan';
+
   el.copyBarcodeBtn.disabled = true;
   el.downloadBarcodeBtn.disabled = true;
 
   hideBarcodeWarning();
   syncButtons();
+}
+
+function warnSaveBarcodeFirst() {
+  showBarcodeWarning();
+  setStatus('Save TXT dulu sebelum Capture & Continue, atau tekan X untuk ignore.', 5000);
+
+  if (el.barcodeValue) {
+    el.barcodeValue.focus();
+  }
 }
 
 function ignoreBarcodeResult() {
@@ -1948,20 +2011,6 @@ function toggleManualBarcodeScan() {
   }
 }
 
-function clearBarcodeResult() {
-  lastBarcodeValue = '';
-  lastBarcodeFormat = '';
-
-  el.barcodeValue.value = '';
-  el.barcodeFormat.textContent = barcodeScannerEnabled
-    ? 'Scanning... arahkan kamera ke barcode'
-    : 'Klik icon barcode untuk mulai scan';
-
-  el.copyBarcodeBtn.disabled = true;
-  el.downloadBarcodeBtn.disabled = true;
-
-  syncButtons();
-}
 
 async function copyBarcodeValue() {
   if (!lastBarcodeValue) {
@@ -2706,30 +2755,36 @@ function renderGallery() {
     return;
   }
 
-  gallery.forEach((item) => {
+  gallery.forEach((item, index) => {
     const card = document.createElement('div');
     card.className = 'gallery-item';
 
     const imageBox = document.createElement('div');
     imageBox.className = 'gallery-image';
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'gallery-delete-btn';
+    deleteBtn.type = 'button';
+    deleteBtn.title = 'Hapus dari Gallery';
+    deleteBtn.innerHTML = '<i class="ti ti-x"></i>';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      if (!confirm('Hapus item ini dari Gallery?')) return;
+
+      gallery.splice(index, 1);
+      renderGallery();
+      syncButtons();
+      setStatus('Item Gallery dihapus');
+    });
+
     if (item.type === 'text') {
       const txtBox = document.createElement('div');
-      txtBox.style.width = '100%';
-      txtBox.style.height = '100%';
-      txtBox.style.display = 'flex';
-      txtBox.style.flexDirection = 'column';
-      txtBox.style.alignItems = 'center';
-      txtBox.style.justifyContent = 'center';
-      txtBox.style.padding = '14px';
-      txtBox.style.textAlign = 'center';
-      txtBox.style.background = '#eff6ff';
-      txtBox.style.color = '#1d4ed8';
-
+      txtBox.className = 'txt-gallery-card';
       txtBox.innerHTML = `
-        <i class="ti ti-barcode" style="font-size:42px;margin-bottom:10px;"></i>
-        <strong style="font-size:13px;word-break:break-all;">${item.text || ''}</strong>
-        <span style="font-size:11px;color:#64748b;margin-top:6px;">TXT Barcode</span>
+        <i class="ti ti-file-text"></i>
+        <strong>${item.filename || 'barcode.txt'}</strong>
+        <span>Barcode TXT</span>
       `;
 
       imageBox.appendChild(txtBox);
@@ -2771,6 +2826,8 @@ function renderGallery() {
 
     actions.appendChild(shareBtn);
     actions.appendChild(downloadBtn);
+
+    imageBox.appendChild(deleteBtn);
     imageBox.appendChild(actions);
 
     const caption = document.createElement('div');
@@ -2784,68 +2841,7 @@ function renderGallery() {
   });
 }
 
-function renderGallery() {
-  el.galleryCount.textContent = gallery.length;
-  el.galleryGrid.innerHTML = '';
 
-  if (!gallery.length) {
-    el.galleryGrid.innerHTML = '<div class="empty-list" style="grid-column:1/-1;">Belum ada hasil tersimpan.</div>';
-    return;
-  }
-
-  gallery.forEach((item) => {
-    const card = document.createElement('div');
-    card.className = 'gallery-item';
-
-    const imageBox = document.createElement('div');
-    imageBox.className = 'gallery-image';
-
-    const img = document.createElement('img');
-    img.src = item.dataURL;
-    img.alt = item.filename;
-    img.addEventListener('click', () => {
-      addToQueue([{ src: item.dataURL, name: item.filename }]);
-      setStatus('Gambar dari gallery dimasukkan ke queue');
-    });
-
-    const actions = document.createElement('div');
-    actions.className = 'gallery-actions';
-
-    const shareBtn = document.createElement('button');
-    shareBtn.className = 'gallery-action-btn';
-    shareBtn.type = 'button';
-    shareBtn.title = 'Share';
-    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
-    shareBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await shareDataEntries([{ src: item.dataURL, filename: item.filename }], false);
-    });
-
-    const downloadBtn = document.createElement('button');
-    downloadBtn.className = 'gallery-action-btn';
-    downloadBtn.type = 'button';
-    downloadBtn.title = 'Download';
-    downloadBtn.innerHTML = '<i class="ti ti-download"></i>';
-    downloadBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      downloadDataURL(item.dataURL, item.filename);
-    });
-
-    actions.appendChild(shareBtn);
-    actions.appendChild(downloadBtn);
-    imageBox.appendChild(img);
-    imageBox.appendChild(actions);
-
-    const caption = document.createElement('div');
-    caption.className = 'gallery-caption';
-    caption.textContent = item.filename;
-
-    card.appendChild(imageBox);
-    card.appendChild(caption);
-
-    el.galleryGrid.appendChild(card);
-  });
-}
 
 function downloadDataURL(src, filename) {
   const a = document.createElement('a');
@@ -3259,6 +3255,12 @@ function capturePhoto(closeAfter) {
     return;
   }
 
+  // Capture & Continue: kalau barcode belum Save TXT, jangan capture dulu
+  if (!closeAfter && lastBarcodeValue && !barcodeSaved) {
+    warnSaveBarcodeFirst();
+    return;
+  }
+
   const c = document.createElement('canvas');
   c.width = el.camVideo.videoWidth || 640;
   c.height = el.camVideo.videoHeight || 480;
@@ -3277,19 +3279,9 @@ function capturePhoto(closeAfter) {
     return;
   }
 
-  if (lastBarcodeValue && !barcodeSaved) {
-    showBarcodeWarning();
-    setStatus('Save TXT dulu atau tekan X untuk ignore barcode.', 5000);
-    return;
-  }
-
-  if (lastBarcodeValue && barcodeSaved) {
-    clearBarcodeResult();
-  }
-
+  clearBarcodeResult();
   setStatus('Foto berhasil dicapture. Camera tetap aktif.');
 }
-
 /* =========================
    EVENTS
 ========================= */
