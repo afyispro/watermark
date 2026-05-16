@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>WTRMK Studio</title>
+<title>Product Images Collector</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="manifest" href="manifest.json" />
 <style>
@@ -190,9 +190,31 @@ img{display:block;max-width:100%}
 }
 .queue-strip{
   display:flex;
+  flex-wrap:nowrap;
   gap:10px;
   overflow-x:auto;
-  padding-bottom:4px;
+  overflow-y:hidden;
+  max-width:100%;
+  padding:4px 2px 8px;
+  scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;
+}
+
+.queue-strip::-webkit-scrollbar{
+  height:8px;
+}
+
+.queue-strip::-webkit-scrollbar-thumb{
+  background:#cbd5e1;
+  border-radius:999px;
+}
+
+.queue-strip::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+.queue-strip-wrap{
+  overflow:hidden;
 }
 .queue-thumb,
 .queue-add{
@@ -202,6 +224,13 @@ img{display:block;max-width:100%}
   flex:0 0 auto;
   overflow:hidden;
   position:relative;
+}
+.queue-head{
+  margin-bottom:10px;
+}
+
+#queueStrip{
+  min-height:78px;
 }
 .queue-thumb{
   border:2px solid transparent;
@@ -715,7 +744,18 @@ details[open] .summary-arrow{
   font-size:12px;
   font-weight:800;
 }
+.gallery-export-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:12px;
+}
 
+@media (max-width:420px){
+  .gallery-export-actions{
+    grid-template-columns:1fr;
+  }
+}
 .modal{
   position:fixed;
   inset:0;
@@ -1116,7 +1156,7 @@ details[open] .summary-arrow{
 			  <img src="logo2.png" alt="Logo">
 			</div>
         <div>
-          <h1>WTRMK Studio</h1>
+          <h1>Product Images Collector</h1>
           <p>Oleh Azam Alwafy</p>
         </div>
       </div>
@@ -1224,7 +1264,9 @@ details[open] .summary-arrow{
             <i class="ti ti-trash"></i> Clear
           </button>
         </div>
-        <div class="queue-strip" id="queueStrip"></div>
+        <div class="queue-strip-wrap">
+          <div class="queue-strip" id="queueStrip"></div>
+        </div>
       </div>
 
       <!-- PREVIEW -->
@@ -1264,15 +1306,6 @@ details[open] .summary-arrow{
           <button class="btn" id="btnSaveOne" disabled>
             <i class="ti ti-download"></i> Add to Gallery
           </button>
-          <button class="btn btn-primary" id="btnSaveAll" disabled>
-            <i class="ti ti-download"></i> Save All
-          </button>
-          <button class="btn" id="btnShareOne" disabled>
-            <i class="ti ti-share"></i> Share
-          </button>
-          <button class="btn btn-primary" id="btnShareAll" disabled>
-            <i class="ti ti-share-3"></i> Share All
-          </button>
         </div>
 
         <div class="progress" id="progressWrap">
@@ -1291,6 +1324,16 @@ details[open] .summary-arrow{
             <div class="section-sub">Tap gambar untuk preview full screen</div>
           </div>
           <span class="badge" id="galleryCount">0</span>
+        </div>
+
+        <div class="gallery-export-actions">
+          <button class="btn" id="btnSaveAll" disabled>
+            <i class="ti ti-file-zip"></i> Save All
+          </button>
+
+          <button class="btn btn-primary" id="btnShareAll" disabled>
+            <i class="ti ti-share-3"></i> Share All
+          </button>
         </div>
 
         <div class="gallery-grid" id="galleryGrid">
@@ -1355,7 +1398,7 @@ details[open] .summary-arrow{
           <div id="sectionTeks">
             <div class="field">
               <label for="wmText">Text</label>
-              <input class="input" type="text" id="wmText" value="© PT PIONEER 2026" placeholder="Masukkan teks watermark">
+              <input class="input" type="text" id="wmText" value="© ALWAFY 2026" placeholder="Masukkan teks watermark">
             </div>
 
             <div class="row-2">
@@ -1546,10 +1589,10 @@ details[open] .summary-arrow{
 <div class="modal" id="installAppModal">
   <div class="modal-box install-box">
     <div class="install-logo">
-      <img src="logo2.png" alt="WTRMK Studio Logo">
+      <img src="logo2.png" alt="Product Images Collector Logo">
     </div>
 
-    <h3>Download WTRMK Studio APK?</h3>
+    <h3>Download Product Images Collector APK?</h3>
     <p>Install versi APK Android biar bisa dibuka seperti aplikasi biasa.</p>
 
     <div class="modal-actions">
@@ -1610,7 +1653,7 @@ details[open] .summary-arrow{
 const DEFAULT_SETTINGS = {
   textEnabled: true,
   logoEnabled: false,
-  wmText: '© PT PIONEER 2026',
+  wmText: '© ALWAFY 2026',
   wmSize: 28,
   wmOpacity: 70,
   wmColor: '#ffffff',
@@ -1726,7 +1769,6 @@ const el = {
   btnApplyAll: document.getElementById('btnApplyAll'),
   btnSaveOne: document.getElementById('btnSaveOne'),
   btnSaveAll: document.getElementById('btnSaveAll'),
-  btnShareOne: document.getElementById('btnShareOne'),
   btnShareAll: document.getElementById('btnShareAll'),
 
   progressWrap: document.getElementById('progressWrap'),
@@ -1802,7 +1844,7 @@ function closeModal() {
   document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
 }
 
-const APK_URL = 'downloads/wtrmk-studio.apk';
+const APK_URL = 'downloads/product-images-collector.apk';
 
 function isAppInstalled() {
   return window.matchMedia('(display-mode: standalone)').matches
@@ -1839,7 +1881,7 @@ function dismissInstallPopup() {
 function downloadAPK() {
   const a = document.createElement('a');
   a.href = APK_URL;
-  a.download = 'WTRMK-Studio.apk';
+  a.download = 'Product-Collector.apk';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -2273,7 +2315,6 @@ function syncButtons() {
   el.btnSaveOne.disabled = busy || !hasQueue || activeIdx < 0;
 
   el.btnSaveAll.disabled = busy || !hasGallery;
-  el.btnShareOne.disabled = busy || !hasQueue || activeIdx < 0;
   el.btnShareAll.disabled = busy || !hasGallery;
 
   el.clearQueueBtn.disabled = busy || !hasQueue;
@@ -2715,7 +2756,7 @@ async function saveActive() {
     busy = true;
     syncButtons();
 
-    updateProgress(35, 'Saving to gallery...');
+    updateProgress(35, 'Adding to Gallery...');
 
     const item = queue[activeIdx];
     const src = await ensureProcessed(item);
@@ -2723,14 +2764,26 @@ async function saveActive() {
 
     doSaveToGallery(src, filename);
 
-    item.done = true;
-    renderQueue();
+    // Pindahkan: hapus dari Queue setelah masuk Gallery
+    const removedIndex = activeIdx;
+    queue.splice(removedIndex, 1);
 
-    updateProgress(100, 'Saved to gallery');
-    setStatus('Gambar masuk ke Gallery!');
+    if (!queue.length) {
+      activeIdx = -1;
+      showEmpty();
+    } else {
+      activeIdx = Math.min(removedIndex, queue.length - 1);
+      await setActive(activeIdx);
+    }
+
+    renderQueue();
+    renderGallery();
+
+    updateProgress(100, 'Moved to Gallery');
+    setStatus('Gambar dipindahkan ke Gallery!');
   } catch (err) {
     console.error(err);
-    setStatus('Gagal save gambar');
+    setStatus('Gagal menambahkan ke Gallery');
   } finally {
     busy = false;
     syncButtons();
@@ -3104,7 +3157,7 @@ async function shareGalleryItem(item) {
 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({
-        title: item.filename || 'WTRMK Studio File',
+        title: item.filename || 'Product Images Collector File',
         files: [file]
       });
       setStatus('File berhasil dishare!');
@@ -3142,7 +3195,7 @@ async function saveAll() {
     updateProgress(20, 'Membuat ZIP dari Gallery...');
 
     const zipBlob = await buildAllZip();
-    const filename = `wtrmk_studio_gallery_${Date.now()}.zip`;
+    const filename = `images_collector_gallery_${Date.now()}.zip`;
 
     updateProgress(100, 'ZIP ready');
     downloadBlob(zipBlob, filename);
@@ -3235,8 +3288,8 @@ async function shareOrDownloadZip(zipBlob, filename) {
 
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     await navigator.share({
-      title: 'WTRMK Studio Export',
-      text: 'Export dari WTRMK Studio',
+      title: 'Product Images Collector Export',
+      text: 'Export dari Product Images Collector',
       files: [file]
     });
     setStatus('ZIP berhasil dishare!');
@@ -3366,7 +3419,7 @@ async function shareAll() {
     updateProgress(20, 'Membuat ZIP Gallery untuk share...');
 
     const zipBlob = await buildAllZip();
-    const filename = `wtrmk_studio_gallery_share_${Date.now()}.zip`;
+    const filename = `product_images_collector_gallery_share_${Date.now()}.zip`;
 
     updateProgress(100, 'ZIP ready');
     await shareOrDownloadZip(zipBlob, filename);
@@ -3717,7 +3770,6 @@ el.btnApplyOne.addEventListener('click', applyToActive);
 el.btnApplyAll.addEventListener('click', applyToAll);
 el.btnSaveOne.addEventListener('click', saveActive);
 el.btnSaveAll.addEventListener('click', saveAll);
-el.btnShareOne.addEventListener('click', shareActive);
 el.btnShareAll.addEventListener('click', shareAll);
 
 window.addEventListener('click', (e) => {
