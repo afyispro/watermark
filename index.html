@@ -1948,19 +1948,24 @@ function downloadReadyZip() {
     return;
   }
 
-  downloadBlob(pendingShareZipBlob, pendingShareZipName);
-  closeZipReadyModal();
+  try {
+    downloadBlob(pendingShareZipBlob, pendingShareZipName);
 
-  pendingShareZipBlob = null;
-  pendingShareZipName = '';
+    closeZipReadyModal();
 
-  setStatus('ZIP didownload!');
+    pendingShareZipBlob = null;
+    pendingShareZipName = '';
+
+    setStatus('ZIP didownload!');
+  } catch (err) {
+    console.warn('Download ZIP gagal:', err);
+    setStatus('Download ditolak browser. Coba tekan tombol Download lagi.', 6000);
+  }
 }
 
 async function shareReadyZip() {
   if (!pendingShareZipBlob || !pendingShareZipName) {
     setStatus('ZIP belum siap');
-    closeZipReadyModal();
     return;
   }
 
@@ -1971,29 +1976,29 @@ async function shareReadyZip() {
       { type: 'application/zip' }
     );
 
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: 'Product Images Collector Export',
-        text: 'Export Gallery dari Product Images Collector',
-        files: [file]
-      });
-
-      closeZipReadyModal();
-      pendingShareZipBlob = null;
-      pendingShareZipName = '';
-
-      setStatus('ZIP berhasil dishare!');
+    if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) {
+      setStatus('Browser tidak support share ZIP. Klik Download ZIP saja.', 5000);
       return;
     }
 
-    downloadReadyZip();
-    setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
-  } catch (err) {
-    console.warn(err);
+    await navigator.share({
+      title: 'Product Images Collector Export',
+      text: 'Export Gallery dari Product Images Collector',
+      files: [file]
+    });
 
-    // fallback kalau Permission denied / NotAllowedError
-    downloadReadyZip();
-    setStatus('Share ditolak browser. ZIP didownload sebagai pengganti.');
+    closeZipReadyModal();
+    pendingShareZipBlob = null;
+    pendingShareZipName = '';
+
+    setStatus('ZIP berhasil dishare!');
+  } catch (err) {
+    console.warn('Share ZIP gagal/ditolak:', err);
+
+    // PENTING:
+    // Jangan auto download di sini, karena browser bisa blok juga.
+    // Biarkan modal tetap kebuka supaya user klik Download manual.
+    setStatus('Share ditolak browser. Klik Download ZIP di popup.', 6000);
   }
 }
 
@@ -3239,19 +3244,25 @@ async function shareGalleryItem(item) {
     const file = await galleryItemToFile(item);
 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: item.filename || 'Product Images Collector File',
-        files: [file]
-      });
-      setStatus('File berhasil dishare!');
-      return;
+      try {
+        await navigator.share({
+          title: item.filename || 'Product Images Collector File',
+          files: [file]
+        });
+
+        setStatus('File berhasil dishare!');
+        return;
+      } catch (err) {
+        console.warn('Share item gagal:', err);
+      }
     }
 
     downloadGalleryItem(item);
-    setStatus('Share tidak didukung. File didownload sebagai pengganti.');
+    setStatus('Share ditolak/tidak didukung. File didownload sebagai pengganti.');
   } catch (err) {
     console.warn(err);
-    setStatus('Share dibatalkan');
+    downloadGalleryItem(item);
+    setStatus('Share gagal. File didownload sebagai pengganti.');
   }
 }
 
@@ -3367,20 +3378,28 @@ function downloadBlob(blob, filename) {
 }
 
 async function shareOrDownloadZip(zipBlob, filename) {
-  const file = new File([zipBlob], filename, { type: 'application/zip' });
+  try {
+    const file = new File([zipBlob], filename, { type: 'application/zip' });
 
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      title: 'Product Images Collector Export',
-      text: 'Export dari Product Images Collector',
-      files: [file]
-    });
-    setStatus('ZIP berhasil dishare!');
-    return;
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Product Images Collector Export',
+        text: 'Export Gallery dari Product Images Collector',
+        files: [file]
+      });
+
+      setStatus('ZIP berhasil dishare!');
+      return;
+    }
+
+    downloadBlob(zipBlob, filename);
+    setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
+  } catch (err) {
+    console.warn('Share ZIP gagal:', err);
+
+    downloadBlob(zipBlob, filename);
+    setStatus('Share ditolak browser. ZIP didownload sebagai pengganti.');
   }
-
-  downloadBlob(zipBlob, filename);
-  setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
 }
 
 async function shareDataEntries(entries, isBulk = false) {
