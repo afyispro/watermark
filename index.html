@@ -1644,6 +1644,23 @@ details[open] .summary-arrow{
     </div>
   </div>
 </div>
+<!-- ZIP READY MODAL -->
+<div class="modal" id="zipReadyModal">
+  <div class="modal-box">
+    <h3>ZIP sudah siap</h3>
+    <p>File ZIP Gallery sudah selesai dibuat. Pilih Share ZIP atau Download ZIP.</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="downloadReadyZipBtn" type="button">
+        <i class="ti ti-download"></i> Download
+      </button>
+
+      <button class="btn btn-primary" id="shareReadyZipBtn" type="button">
+        <i class="ti ti-share-3"></i> Share ZIP
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
@@ -1687,6 +1704,8 @@ let flashOn = false;
 let busy = false;
 let savedCount = 0;
 let gallery = [];
+let pendingShareZipBlob = null;
+let pendingShareZipName = '';
 let pendingDeleteGalleryIndex = -1;
 let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
 let activePresetIdx = -1;
@@ -1733,6 +1752,10 @@ const el = {
   deleteGalleryModal: document.getElementById('deleteGalleryModal'),
   cancelDeleteGalleryBtn: document.getElementById('cancelDeleteGalleryBtn'),
   confirmDeleteGalleryBtn: document.getElementById('confirmDeleteGalleryBtn'),
+
+  zipReadyModal: document.getElementById('zipReadyModal'),
+  downloadReadyZipBtn: document.getElementById('downloadReadyZipBtn'),
+  shareReadyZipBtn: document.getElementById('shareReadyZipBtn'),
 
   installAppModal: document.getElementById('installAppModal'),
   installAppBtn: document.getElementById('installAppBtn'),
@@ -1912,6 +1935,66 @@ function confirmDeleteGalleryItem() {
   syncButtons();
 
   setStatus('Item Gallery dihapus');
+}
+
+function closeZipReadyModal() {
+  el.zipReadyModal.classList.remove('show');
+}
+
+function downloadReadyZip() {
+  if (!pendingShareZipBlob || !pendingShareZipName) {
+    setStatus('ZIP belum siap');
+    closeZipReadyModal();
+    return;
+  }
+
+  downloadBlob(pendingShareZipBlob, pendingShareZipName);
+  closeZipReadyModal();
+
+  pendingShareZipBlob = null;
+  pendingShareZipName = '';
+
+  setStatus('ZIP didownload!');
+}
+
+async function shareReadyZip() {
+  if (!pendingShareZipBlob || !pendingShareZipName) {
+    setStatus('ZIP belum siap');
+    closeZipReadyModal();
+    return;
+  }
+
+  try {
+    const file = new File(
+      [pendingShareZipBlob],
+      pendingShareZipName,
+      { type: 'application/zip' }
+    );
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: 'Product Images Collector Export',
+        text: 'Export Gallery dari Product Images Collector',
+        files: [file]
+      });
+
+      closeZipReadyModal();
+      pendingShareZipBlob = null;
+      pendingShareZipName = '';
+
+      setStatus('ZIP berhasil dishare!');
+      return;
+    }
+
+    downloadReadyZip();
+    setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
+  } catch (err) {
+    console.warn(err);
+
+    // fallback kalau Permission denied / NotAllowedError
+    downloadReadyZip();
+    setStatus('Share ditolak browser. ZIP didownload sebagai pengganti.');
+  }
 }
 
 function updateProgress(pct, text) {
@@ -3408,7 +3491,7 @@ async function shareActive() {
 
 async function shareAll() {
   if (!gallery.length || busy) {
-    setStatus('Gallery masih kosong. Save file ke Gallery dulu.');
+    setStatus('Gallery masih kosong. Add to Gallery dulu.');
     return;
   }
 
@@ -3416,16 +3499,18 @@ async function shareAll() {
     busy = true;
     syncButtons();
 
-    updateProgress(20, 'Membuat ZIP Gallery untuk share...');
+    updateProgress(20, 'Membuat ZIP Gallery...');
 
-    const zipBlob = await buildAllZip();
-    const filename = `product_images_collector_gallery_share_${Date.now()}.zip`;
+    pendingShareZipBlob = await buildAllZip();
+    pendingShareZipName = `product_images_gallery_${Date.now()}.zip`;
 
     updateProgress(100, 'ZIP ready');
-    await shareOrDownloadZip(zipBlob, filename);
+
+    showModal(el.zipReadyModal);
+    setStatus('ZIP siap. Pilih Share ZIP atau Download ZIP.');
   } catch (err) {
     console.error(err);
-    setStatus(err.message || 'Gagal share ZIP');
+    setStatus(err.message || 'Gagal membuat ZIP');
   } finally {
     busy = false;
     syncButtons();
@@ -3781,6 +3866,9 @@ el.confirmDeleteGalleryBtn.addEventListener('click', confirmDeleteGalleryItem);
 
 el.cancelDeletePresetBtn.addEventListener('click', closeDeletePresetModal);
 el.confirmDeletePresetBtn.addEventListener('click', confirmDeletePreset);
+
+el.downloadReadyZipBtn.addEventListener('click', downloadReadyZip);
+el.shareReadyZipBtn.addEventListener('click', shareReadyZip);
 
 /* =========================
    INIT
