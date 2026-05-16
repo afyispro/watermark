@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Product Images Collector V1</title>
+<title>Product Images Collector</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="manifest" href="manifest.json" />
 <style>
@@ -1157,7 +1157,7 @@ details[open] .summary-arrow{
 			</div>
         <div>
           <h1>Product Images Collector</h1>
-          <p>Oleh Azam Alwafy</p>
+          <p>Oleh Muhammad Azam Alwafy</p>
         </div>
       </div>
     </div>
@@ -1966,9 +1966,8 @@ async function shareReadyZip() {
     return;
   }
 
+  // PENTING: files-only lebih aman untuk file share
   const shareData = {
-    title: 'Product Images Collector Export',
-    text: 'Export Gallery dari Product Images Collector',
     files: [pendingShareZipFile]
   };
 
@@ -1979,7 +1978,8 @@ async function shareReadyZip() {
     fileName: pendingShareZipFile.name,
     fileType: pendingShareZipFile.type,
     fileSize: pendingShareZipFile.size,
-    canShare: navigator.canShare ? navigator.canShare(shareData) : null
+    canShareFilesOnly: navigator.canShare ? navigator.canShare(shareData) : null,
+    userAgent: navigator.userAgent
   });
 
   if (!window.isSecureContext) {
@@ -1993,7 +1993,7 @@ async function shareReadyZip() {
   }
 
   if (navigator.canShare && !navigator.canShare(shareData)) {
-    setStatus('Browser tidak menerima file ZIP ini. Coba Download ZIP.');
+    setStatus('Browser tidak menerima ZIP ini. Coba Download ZIP.');
     return;
   }
 
@@ -2016,14 +2016,13 @@ async function shareReadyZip() {
     }
 
     if (err.name === 'NotAllowedError') {
-      setStatus('Browser menolak share ZIP. Coba dari Chrome Android/PWA, atau pakai Download ZIP.', 7000);
+      setStatus('Browser/OS menolak share ZIP. Coba test di Chrome Android/PWA, atau pakai Download ZIP.', 8000);
       return;
     }
 
     setStatus('Share ZIP gagal. Coba Download ZIP.', 6000);
   }
 }
-
 function updateProgress(pct, text) {
   el.progressWrap.classList.add('show');
   el.progressFill.style.width = pct + '%';
