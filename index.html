@@ -2157,6 +2157,7 @@ function addToQueue(items) {
   if (!items?.length) return;
 
   const wasEmpty = queue.length === 0;
+  const firstNewIndex = queue.length;
 
   items.forEach(item => {
     queue.push({
@@ -2169,7 +2170,13 @@ function addToQueue(items) {
   });
 
   renderQueue();
-  if (wasEmpty && queue.length > 0) setActive(0);
+
+  if (wasEmpty && queue.length > 0) {
+    setActive(0);
+  } else if (firstNewIndex >= 0 && queue[firstNewIndex]) {
+    setActive(firstNewIndex);
+  }
+
   syncButtons();
   setStatus(items.length + ' gambar ditambahkan');
 }
@@ -2252,6 +2259,7 @@ async function showCanvasFromSrc(src) {
     Math.min(window.innerWidth - 56, 900),
     Math.min(window.innerHeight * 0.62, 650)
   );
+
   el.mainCanvas.width = width;
   el.mainCanvas.height = height;
   ctx.clearRect(0, 0, width, height);
@@ -2260,6 +2268,20 @@ async function showCanvasFromSrc(src) {
   el.emptyState.style.display = 'none';
 }
 
+// WAJIB ADA INI DULU
+async function setActive(i) {
+  if (!queue[i]) return;
+
+  activeIdx = i;
+  renderQueue();
+
+  const item = queue[i];
+  await showCanvasFromSrc(item.processedSrc || item.originalSrc);
+
+  syncButtons();
+}
+
+// BARU saveActive DI BAWAHNYA
 async function saveActive() {
   if (activeIdx < 0 || !queue[activeIdx] || busy) return;
 
@@ -3093,15 +3115,42 @@ function stopCamera() {
 
   el.camVideo.srcObject = null;
   el.camSection.classList.remove('show');
+
+  syncButtons();
 }
 
 function capturePhoto(closeAfter) {
+  if (!camStream || !el.camVideo.videoWidth) {
+    setStatus('Camera belum siap');
+    return;
+  }
+
+  const currentBarcodeValue = lastBarcodeValue;
+  const currentBarcodeFormat = lastBarcodeFormat;
+
   const c = document.createElement('canvas');
   c.width = el.camVideo.videoWidth || 640;
   c.height = el.camVideo.videoHeight || 480;
-  c.getContext('2d').drawImage(el.camVideo, 0, 0);
-  addToQueue([{ src: c.toDataURL('image/jpeg', 0.95), name: 'camera_capture.jpg' }]);
-  if (closeAfter) stopCamera();
+
+  const cctx = c.getContext('2d');
+  cctx.drawImage(el.camVideo, 0, 0, c.width, c.height);
+
+  addToQueue([{
+    src: c.toDataURL('image/jpeg', 0.95),
+    name: `camera_capture_${Date.now()}.jpg`
+  }]);
+
+  if (closeAfter) {
+    stopCamera();
+    setStatus('Foto berhasil dicapture dan camera ditutup');
+  } else {
+    // biar barcode result nggak kosong setelah Capture & Continue
+    if (currentBarcodeValue) {
+      setBarcodeResult(currentBarcodeValue, currentBarcodeFormat);
+    }
+
+    setStatus('Foto berhasil dicapture. Camera tetap aktif.');
+  }
 }
 
 /* =========================
