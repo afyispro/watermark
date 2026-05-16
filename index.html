@@ -1572,6 +1572,35 @@ details[open] .summary-arrow{
 
   <div class="viewer-caption" id="viewerCaption"></div>
 </div>
+<!-- DELETE GALLERY MODAL -->
+<div class="modal" id="deleteGalleryModal">
+  <div class="modal-box">
+    <h3>Hapus item dari Gallery?</h3>
+    <p>Item ini akan dihapus dari Gallery. File yang sudah didownload sebelumnya tidak ikut terhapus.</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="cancelDeleteGalleryBtn" type="button">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeleteGalleryBtn" type="button">
+        <i class="ti ti-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE PRESET MODAL -->
+<div class="modal" id="deletePresetModal">
+  <div class="modal-box">
+    <h3>Delete preset?</h3>
+    <p>Preset ini akan dihapus dari daftar preset tersimpan.</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="cancelDeletePresetBtn" type="button">Cancel</button>
+      <button class="btn btn-danger" id="confirmDeletePresetBtn" type="button">
+        <i class="ti ti-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
@@ -1615,6 +1644,7 @@ let flashOn = false;
 let busy = false;
 let savedCount = 0;
 let gallery = [];
+let pendingDeleteGalleryIndex = -1;
 let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
 let activePresetIdx = -1;
 let statusTimer = null;
@@ -1652,6 +1682,14 @@ const el = {
   clearBarcodeBtn: document.getElementById('clearBarcodeBtn'),
   copyBarcodeBtn: document.getElementById('copyBarcodeBtn'),
   downloadBarcodeBtn: document.getElementById('downloadBarcodeBtn'),
+
+  deletePresetModal: document.getElementById('deletePresetModal'),
+  cancelDeletePresetBtn: document.getElementById('cancelDeletePresetBtn'),
+  confirmDeletePresetBtn: document.getElementById('confirmDeletePresetBtn'),
+
+  deleteGalleryModal: document.getElementById('deleteGalleryModal'),
+  cancelDeleteGalleryBtn: document.getElementById('cancelDeleteGalleryBtn'),
+  confirmDeleteGalleryBtn: document.getElementById('confirmDeleteGalleryBtn'),
 
   installAppModal: document.getElementById('installAppModal'),
   installAppBtn: document.getElementById('installAppBtn'),
@@ -1808,6 +1846,30 @@ function downloadAPK() {
 
   hideInstallPopup();
   setStatus('APK sedang didownload...');
+}
+function openDeleteGalleryModal(index) {
+  pendingDeleteGalleryIndex = index;
+  showModal(el.deleteGalleryModal);
+}
+
+function closeDeleteGalleryModal() {
+  pendingDeleteGalleryIndex = -1;
+  el.deleteGalleryModal.classList.remove('show');
+}
+
+function confirmDeleteGalleryItem() {
+  if (pendingDeleteGalleryIndex < 0 || !gallery[pendingDeleteGalleryIndex]) {
+    closeDeleteGalleryModal();
+    return;
+  }
+
+  gallery.splice(pendingDeleteGalleryIndex, 1);
+
+  closeDeleteGalleryModal();
+  renderGallery();
+  syncButtons();
+
+  setStatus('Item Gallery dihapus');
 }
 
 function updateProgress(pct, text) {
@@ -2454,12 +2516,26 @@ function exportPresetByIndex(idx) {
 
 function deletePreset() {
   if (activePresetIdx < 0 || !presets[activePresetIdx]) return;
-  if (!confirm('Delete preset ini?')) return;
+  showModal(el.deletePresetModal);
+}
+
+function closeDeletePresetModal() {
+  el.deletePresetModal.classList.remove('show');
+}
+
+function confirmDeletePreset() {
+  if (activePresetIdx < 0 || !presets[activePresetIdx]) {
+    closeDeletePresetModal();
+    return;
+  }
 
   presets.splice(activePresetIdx, 1);
   activePresetIdx = -1;
+
   savePresetsToStorage();
   renderPresets();
+  closeDeletePresetModal();
+
   setStatus('Preset dihapus');
 }
 
@@ -2910,14 +2986,9 @@ function renderGallery() {
     deleteBtn.innerHTML = '<i class="ti ti-x"></i>';
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-
-      if (!confirm('Hapus item ini dari Gallery?')) return;
-
-      gallery.splice(index, 1);
-      renderGallery();
-      syncButtons();
-      setStatus('Item Gallery dihapus');
+      openDeleteGalleryModal(index);
     });
+
 
     if (item.type === 'text') {
       const txtBox = document.createElement('div');
@@ -3652,6 +3723,12 @@ el.btnShareAll.addEventListener('click', shareAll);
 window.addEventListener('click', (e) => {
   if (e.target.classList.contains('modal')) closeModal();
 });
+
+el.cancelDeleteGalleryBtn.addEventListener('click', closeDeleteGalleryModal);
+el.confirmDeleteGalleryBtn.addEventListener('click', confirmDeleteGalleryItem);
+
+el.cancelDeletePresetBtn.addEventListener('click', closeDeletePresetModal);
+el.confirmDeletePresetBtn.addEventListener('click', confirmDeletePreset);
 
 /* =========================
    INIT
