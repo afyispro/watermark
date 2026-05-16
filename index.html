@@ -3255,8 +3255,9 @@ function capturePhoto(closeAfter) {
     return;
   }
 
-  // Capture & Continue: kalau barcode belum Save TXT, jangan capture dulu
-  if (!closeAfter && lastBarcodeValue && !barcodeSaved) {
+  // Kalau ada barcode terbaca tapi belum Save TXT,
+  // jangan capture dulu, baik Capture & Continue maupun Capture & Close.
+  if (lastBarcodeValue && !barcodeSaved) {
     warnSaveBarcodeFirst();
     return;
   }
@@ -3273,13 +3274,14 @@ function capturePhoto(closeAfter) {
     name: `camera_capture_${Date.now()}.jpg`
   }]);
 
+  clearBarcodeResult();
+
   if (closeAfter) {
     stopCamera();
     setStatus('Foto berhasil dicapture dan camera ditutup');
     return;
   }
 
-  clearBarcodeResult();
   setStatus('Foto berhasil dicapture. Camera tetap aktif.');
 }
 /* =========================
