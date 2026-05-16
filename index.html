@@ -188,40 +188,46 @@ img{display:block;max-width:100%}
   margin-bottom:12px;
   flex-wrap:wrap;
 }
+.queue-strip-wrap{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+  touch-action:pan-x;
+  padding:4px 2px 8px;
+}
+
 .queue-strip{
   display:flex;
   flex-wrap:nowrap;
   gap:10px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  max-width:100%;
-  padding:4px 2px 8px;
-  scroll-behavior:smooth;
-  -webkit-overflow-scrolling:touch;
+  width:max-content;
+  min-width:100%;
+  padding:0;
 }
 
-.queue-strip::-webkit-scrollbar{
+.queue-strip-wrap::-webkit-scrollbar{
   height:8px;
 }
 
-.queue-strip::-webkit-scrollbar-thumb{
+.queue-strip-wrap::-webkit-scrollbar-thumb{
   background:#cbd5e1;
   border-radius:999px;
 }
 
-.queue-strip::-webkit-scrollbar-track{
+.queue-strip-wrap::-webkit-scrollbar-track{
   background:transparent;
 }
 
-.queue-strip-wrap{
-  overflow:hidden;
-}
 .queue-thumb,
 .queue-add{
   width:86px;
   height:70px;
   border-radius:12px;
-  flex:0 0 auto;
+  flex:0 0 86px;
   overflow:hidden;
   position:relative;
 }
@@ -1157,7 +1163,7 @@ details[open] .summary-arrow{
 			</div>
         <div>
           <h1>Product Images Collector</h1>
-          <p>Oleh Azam Alwafy</p>
+          <p>Oleh Muhammad Azam Alwafy</p>
         </div>
       </div>
     </div>
@@ -1326,15 +1332,20 @@ details[open] .summary-arrow{
           <span class="badge" id="galleryCount">0</span>
         </div>
 
-        <div class="gallery-export-actions">
-          <button class="btn" id="btnSaveAll" disabled>
-            <i class="ti ti-file-zip"></i> Save All
-          </button>
+      <div class="field product-name-field">
+        <label for="productNameInput">Nama Produk</label>
+        <input class="input" type="text" id="productNameInput" placeholder="Contoh: susu">
+      </div>
 
-          <button class="btn btn-primary" id="btnShareAll" disabled>
-            <i class="ti ti-share-3"></i> Share All
-          </button>
-        </div>
+      <div class="gallery-export-actions">
+        <button class="btn" id="btnSaveAll" disabled>
+          <i class="ti ti-file-zip"></i> Save All
+        </button>
+
+        <button class="btn btn-primary" id="btnShareAll" disabled>
+          <i class="ti ti-share-3"></i> Share All
+        </button>
+      </div>
 
         <div class="gallery-grid" id="galleryGrid">
           <div class="empty-list" style="grid-column:1/-1;">Belum ada hasil tersimpan.</div>
@@ -1644,6 +1655,23 @@ details[open] .summary-arrow{
     </div>
   </div>
 </div>
+<!-- ZIP READY MODAL -->
+<div class="modal" id="zipReadyModal">
+  <div class="modal-box">
+    <h3>ZIP sudah siap</h3>
+    <p>File ZIP Gallery sudah selesai dibuat. Pilih Share ZIP atau Download ZIP.</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="downloadReadyZipBtn" type="button">
+        <i class="ti ti-download"></i> Download
+      </button>
+
+      <button class="btn btn-primary" id="shareReadyZipBtn" type="button">
+        <i class="ti ti-share-3"></i> Share ZIP
+      </button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
@@ -1687,6 +1715,9 @@ let flashOn = false;
 let busy = false;
 let savedCount = 0;
 let gallery = [];
+let pendingShareZipBlob = null;
+let pendingShareZipFile = null;
+let pendingShareZipName = '';
 let pendingDeleteGalleryIndex = -1;
 let presets = JSON.parse(localStorage.getItem('watermarkPresets') || '[]');
 let activePresetIdx = -1;
@@ -1734,6 +1765,10 @@ const el = {
   cancelDeleteGalleryBtn: document.getElementById('cancelDeleteGalleryBtn'),
   confirmDeleteGalleryBtn: document.getElementById('confirmDeleteGalleryBtn'),
 
+  zipReadyModal: document.getElementById('zipReadyModal'),
+  downloadReadyZipBtn: document.getElementById('downloadReadyZipBtn'),
+  shareReadyZipBtn: document.getElementById('shareReadyZipBtn'),
+
   installAppModal: document.getElementById('installAppModal'),
   installAppBtn: document.getElementById('installAppBtn'),
   dismissInstallBtn: document.getElementById('dismissInstallBtn'),
@@ -1777,6 +1812,7 @@ const el = {
 
   galleryGrid: document.getElementById('galleryGrid'),
   galleryCount: document.getElementById('galleryCount'),
+  productNameInput: document.getElementById('productNameInput'),
 
   chkTeks: document.getElementById('chkTeks'),
   chkLogo: document.getElementById('chkLogo'),
@@ -1914,6 +1950,102 @@ function confirmDeleteGalleryItem() {
   setStatus('Item Gallery dihapus');
 }
 
+function closeZipReadyModal() {
+  el.zipReadyModal.classList.remove('show');
+}
+
+function downloadReadyZip() {
+  if (!pendingShareZipBlob || !pendingShareZipName) {
+    setStatus('ZIP belum siap');
+    closeZipReadyModal();
+    return;
+  }
+
+  downloadBlob(pendingShareZipBlob, pendingShareZipName);
+
+  closeZipReadyModal();
+
+  pendingShareZipBlob = null;
+  pendingShareZipFile = null;
+  pendingShareZipName = '';
+
+  setStatus('ZIP didownload!');
+}
+
+async function shareReadyZip() {
+  if (!pendingShareZipBlob || !pendingShareZipName) {
+    setStatus('ZIP belum siap');
+    return;
+  }
+
+  // 1. Ubah Blob ZIP menjadi objek File resmi (Ini sudah ada di kode Anda)
+  const zipFile = new File(
+    [pendingShareZipBlob],
+    pendingShareZipName,
+    { type: 'application/zip' }
+  );
+
+  // 2. Tambahkan title dan text agar browser tidak mengira ini file spam/berbahaya
+  const shareData = {
+    files: [zipFile],
+    title: 'Product Images ZIP',
+    text: 'Berikut adalah kumpulan foto produk.'
+  };
+
+  console.log('ZIP share debug:', {
+    isSecureContext: window.isSecureContext,
+    hasNavigatorShare: !!navigator.share,
+    hasCanShare: !!navigator.canShare,
+    userActivationIsActive: navigator.userActivation ? navigator.userActivation.isActive : 'unsupported',
+    userActivationHasBeenActive: navigator.userActivation ? navigator.userActivation.hasBeenActive : 'unsupported',
+    fileName: zipFile.name,
+    fileType: zipFile.type,
+    fileSize: zipFile.size,
+    canShareFilesOnly: navigator.canShare ? navigator.canShare(shareData) : null,
+    userAgent: navigator.userAgent
+  });
+
+  if (!window.isSecureContext) {
+    setStatus('Share butuh HTTPS / PWA secure context. Pakai Download ZIP dulu.', 8000);
+    return;
+  }
+
+  if (!navigator.share) {
+    setStatus('Browser ini belum support native share. Pakai Download ZIP.', 8000);
+    return;
+  }
+
+  if (!navigator.canShare || !navigator.canShare(shareData)) {
+    setStatus('Browser/OS tidak menerima ZIP untuk native share. Pakai Download ZIP.', 8000);
+    return;
+  }
+
+  try {
+    await navigator.share(shareData);
+
+    closeZipReadyModal();
+
+    pendingShareZipBlob = null;
+    pendingShareZipFile = null;
+    pendingShareZipName = '';
+
+    setStatus('ZIP berhasil dishare!');
+  } catch (err) {
+    console.error('Native ZIP share gagal:', err);
+
+    if (err.name === 'AbortError') {
+      setStatus('Share dibatalkan.');
+      return;
+    }
+
+    if (err.name === 'NotAllowedError') {
+      setStatus('Browser/OS menolak native share ZIP. ZIP masih siap, tekan Download ZIP.', 9000);
+      return;
+    }
+
+    setStatus('Share ZIP gagal. ZIP masih siap, tekan Download ZIP.', 8000);
+  }
+}
 function updateProgress(pct, text) {
   el.progressWrap.classList.add('show');
   el.progressFill.style.width = pct + '%';
@@ -2029,6 +2161,67 @@ function txtSafeName(value) {
     .replace(/^_+|_+$/g, '')
     .toLowerCase() || 'barcode';
 }
+
+function getProductBaseName() {
+  const raw = el.productNameInput.value.trim();
+
+  if (!raw) {
+    setStatus('Isi nama produk dulu sebelum Save All / Share All.', 5000);
+    el.productNameInput.focus();
+    return '';
+  }
+
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '') || '';
+}
+
+function padNumber(num) {
+  return String(num).padStart(2, '0');
+}
+
+async function galleryItemToRenamedFile(item, productName, counters) {
+  if (item.type === 'text') {
+    counters.text++;
+    const filename = `${productName}_barcode_${padNumber(counters.text)}.txt`;
+
+    return new File(
+      [item.text || ''],
+      filename,
+      { type: 'text/plain' }
+    );
+  }
+
+  counters.image++;
+
+  const file = await dataURLToFile(
+    item.dataURL,
+    `${productName}_${padNumber(counters.image)}.jpg`
+  );
+
+  return new File(
+    [file],
+    `${productName}_${padNumber(counters.image)}.jpg`,
+    { type: file.type || 'image/jpeg' }
+  );
+}
+
+async function makeGalleryShareFiles(productName) {
+  const counters = {
+    image: 0,
+    text: 0
+  };
+
+  const files = [];
+
+  for (const item of gallery) {
+    files.push(await galleryItemToRenamedFile(item, productName, counters));
+  }
+
+  return files;
+}
+
 function makeBarcodeTxtContent(value, format) {
   return `Barcode Value:
 ${value}
@@ -3068,15 +3261,6 @@ function renderGallery() {
     const actions = document.createElement('div');
     actions.className = 'gallery-actions';
 
-    const shareBtn = document.createElement('button');
-    shareBtn.className = 'gallery-action-btn';
-    shareBtn.type = 'button';
-    shareBtn.title = 'Share';
-    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
-    shareBtn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      await shareGalleryItem(item);
-    });
 
     const downloadBtn = document.createElement('button');
     downloadBtn.className = 'gallery-action-btn';
@@ -3088,7 +3272,6 @@ function renderGallery() {
       downloadGalleryItem(item);
     });
 
-    actions.appendChild(shareBtn);
     actions.appendChild(downloadBtn);
 
     imageBox.appendChild(deleteBtn);
@@ -3156,19 +3339,25 @@ async function shareGalleryItem(item) {
     const file = await galleryItemToFile(item);
 
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: item.filename || 'Product Images Collector File',
-        files: [file]
-      });
-      setStatus('File berhasil dishare!');
-      return;
+      try {
+        await navigator.share({
+          title: item.filename || 'Product Images Collector File',
+          files: [file]
+        });
+
+        setStatus('File berhasil dishare!');
+        return;
+      } catch (err) {
+        console.warn('Share item gagal:', err);
+      }
     }
 
     downloadGalleryItem(item);
-    setStatus('Share tidak didukung. File didownload sebagai pengganti.');
+    setStatus('Share ditolak/tidak didukung. File didownload sebagai pengganti.');
   } catch (err) {
     console.warn(err);
-    setStatus('Share dibatalkan');
+    downloadGalleryItem(item);
+    setStatus('Share gagal. File didownload sebagai pengganti.');
   }
 }
 
@@ -3184,9 +3373,12 @@ function doSaveToGallery(src, filename) {
 
 async function saveAll() {
   if (!gallery.length || busy) {
-    setStatus('Gallery masih kosong. Save file ke Gallery dulu.');
+    setStatus('Gallery masih kosong. Add to Gallery dulu.');
     return;
   }
+
+  const productName = getProductBaseName();
+  if (!productName) return;
 
   try {
     busy = true;
@@ -3194,8 +3386,8 @@ async function saveAll() {
 
     updateProgress(20, 'Membuat ZIP dari Gallery...');
 
-    const zipBlob = await buildAllZip();
-    const filename = `images_collector_gallery_${Date.now()}.zip`;
+    const zipBlob = await buildGalleryZipWithProductName(productName);
+    const filename = `${productName}_gallery.zip`;
 
     updateProgress(100, 'ZIP ready');
     downloadBlob(zipBlob, filename);
@@ -3209,6 +3401,29 @@ async function saveAll() {
     syncButtons();
     hideProgress();
   }
+}
+
+async function buildGalleryZipWithProductName(productName) {
+  if (typeof JSZip === 'undefined') {
+    throw new Error('JSZip belum dimuat. Pastikan script JSZip sudah ditambahkan.');
+  }
+
+  if (!gallery.length) {
+    throw new Error('Gallery masih kosong.');
+  }
+
+  const zip = new JSZip();
+  const files = await makeGalleryShareFiles(productName);
+
+  for (const file of files) {
+    if (file.type === 'text/plain') {
+      zip.folder('barcodes').file(file.name, file);
+    } else {
+      zip.folder('images').file(file.name, file);
+    }
+  }
+
+  return zip.generateAsync({ type: 'blob' });
 }
 
 async function dataURLToFile(dataURL, filename) {
@@ -3283,22 +3498,7 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function shareOrDownloadZip(zipBlob, filename) {
-  const file = new File([zipBlob], filename, { type: 'application/zip' });
 
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      title: 'Product Images Collector Export',
-      text: 'Export dari Product Images Collector',
-      files: [file]
-    });
-    setStatus('ZIP berhasil dishare!');
-    return;
-  }
-
-  downloadBlob(zipBlob, filename);
-  setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
-}
 
 async function shareDataEntries(entries, isBulk = false) {
   if (!entries.length) {
@@ -3408,24 +3608,51 @@ async function shareActive() {
 
 async function shareAll() {
   if (!gallery.length || busy) {
-    setStatus('Gallery masih kosong. Save file ke Gallery dulu.');
+    setStatus('Gallery masih kosong. Add to Gallery dulu.');
     return;
   }
+
+  const productName = getProductBaseName();
+  if (!productName) return;
 
   try {
     busy = true;
     syncButtons();
 
-    updateProgress(20, 'Membuat ZIP Gallery untuk share...');
+    updateProgress(20, 'Menyiapkan semua file Gallery...');
 
-    const zipBlob = await buildAllZip();
-    const filename = `product_images_collector_gallery_share_${Date.now()}.zip`;
+    const files = await makeGalleryShareFiles(productName);
 
-    updateProgress(100, 'ZIP ready');
-    await shareOrDownloadZip(zipBlob, filename);
+    updateProgress(70, 'Membuka share menu...');
+
+    console.log('Share All files:', files.map(file => ({
+      name: file.name,
+      type: file.type,
+      size: file.size
+    })));
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({
+        files,
+        title: productName
+      });
+
+      updateProgress(100, 'Shared');
+      setStatus(`${files.length} file berhasil dikirim ke share menu.`);
+      return;
+    }
+
+    setStatus('Browser/app ini tidak support share multiple files. Pakai Save All ZIP.', 6000);
   } catch (err) {
-    console.error(err);
-    setStatus(err.message || 'Gagal share ZIP');
+    console.error('Share All multiple file gagal:', err);
+
+    if (err.name === 'AbortError') {
+      setStatus('Share dibatalkan.');
+    } else if (err.name === 'NotAllowedError') {
+      setStatus('Share ditolak browser/app. Coba Chrome Android/PWA, atau pakai Save All ZIP.', 7000);
+    } else {
+      setStatus('Share All gagal. Pakai Save All ZIP sebagai fallback.', 6000);
+    }
   } finally {
     busy = false;
     syncButtons();
@@ -3782,6 +4009,8 @@ el.confirmDeleteGalleryBtn.addEventListener('click', confirmDeleteGalleryItem);
 el.cancelDeletePresetBtn.addEventListener('click', closeDeletePresetModal);
 el.confirmDeletePresetBtn.addEventListener('click', confirmDeletePreset);
 
+
+el.productNameInput.addEventListener('input', syncButtons);
 /* =========================
    INIT
 ========================= */
