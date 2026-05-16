@@ -1157,7 +1157,7 @@ details[open] .summary-arrow{
 			</div>
         <div>
           <h1>Product Images Collector</h1>
-          <p>Oleh Muhammad Azam Alwafy</p>
+          <p>Oleh Azam Alwafy</p>
         </div>
       </div>
     </div>
@@ -1961,39 +1961,46 @@ function downloadReadyZip() {
 }
 
 async function shareReadyZip() {
-  if (!pendingShareZipFile) {
+  if (!pendingShareZipBlob || !pendingShareZipName) {
     setStatus('ZIP belum siap');
     return;
   }
 
-  // PENTING: files-only lebih aman untuk file share
+  const zipFile = new File(
+    [pendingShareZipBlob],
+    pendingShareZipName,
+    { type: 'application/zip' }
+  );
+
   const shareData = {
-    files: [pendingShareZipFile]
+    files: [zipFile]
   };
 
   console.log('ZIP share debug:', {
     isSecureContext: window.isSecureContext,
     hasNavigatorShare: !!navigator.share,
     hasCanShare: !!navigator.canShare,
-    fileName: pendingShareZipFile.name,
-    fileType: pendingShareZipFile.type,
-    fileSize: pendingShareZipFile.size,
+    userActivationIsActive: navigator.userActivation ? navigator.userActivation.isActive : 'unsupported',
+    userActivationHasBeenActive: navigator.userActivation ? navigator.userActivation.hasBeenActive : 'unsupported',
+    fileName: zipFile.name,
+    fileType: zipFile.type,
+    fileSize: zipFile.size,
     canShareFilesOnly: navigator.canShare ? navigator.canShare(shareData) : null,
     userAgent: navigator.userAgent
   });
 
   if (!window.isSecureContext) {
-    setStatus('Share butuh HTTPS / secure context.');
+    setStatus('Share butuh HTTPS / PWA secure context. Pakai Download ZIP dulu.', 8000);
     return;
   }
 
   if (!navigator.share) {
-    setStatus('Browser ini belum support native share.');
+    setStatus('Browser ini belum support native share. Pakai Download ZIP.', 8000);
     return;
   }
 
-  if (navigator.canShare && !navigator.canShare(shareData)) {
-    setStatus('Browser tidak menerima ZIP ini. Coba Download ZIP.');
+  if (!navigator.canShare || !navigator.canShare(shareData)) {
+    setStatus('Browser/OS tidak menerima ZIP untuk native share. Pakai Download ZIP.', 8000);
     return;
   }
 
@@ -2016,11 +2023,11 @@ async function shareReadyZip() {
     }
 
     if (err.name === 'NotAllowedError') {
-      setStatus('Browser/OS menolak share ZIP. Coba test di Chrome Android/PWA, atau pakai Download ZIP.', 8000);
+      setStatus('Browser/OS menolak native share ZIP. ZIP masih siap, tekan Download ZIP.', 9000);
       return;
     }
 
-    setStatus('Share ZIP gagal. Coba Download ZIP.', 6000);
+    setStatus('Share ZIP gagal. ZIP masih siap, tekan Download ZIP.', 8000);
   }
 }
 function updateProgress(pct, text) {
