@@ -628,6 +628,51 @@ details[open] .summary-arrow{
   grid-template-columns:1fr;
   gap:10px;
 }
+.barcode-panel{
+  margin-top:12px;
+  border:1px solid var(--line);
+  background:#f8fafc;
+  border-radius:16px;
+  padding:12px;
+}
+
+.barcode-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.barcode-title{
+  font-size:14px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.barcode-sub{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.barcode-value{
+  font-weight:800;
+  letter-spacing:.02em;
+}
+
+.barcode-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+#flashBtn.active{
+  background:#fef3c7;
+  border-color:#f59e0b;
+  color:#92400e;
+}
 
 .badge{
   display:inline-flex;
@@ -917,9 +962,34 @@ details[open] .summary-arrow{
     <input type="file" id="presetFileInput" accept=".json,application/json">
     <div class="status" id="statusMsg"></div>
 
-    <div class="camera-box" id="camSection">
-      <video id="camVideo" class="camera-preview" autoplay playsinline muted></video>
-      <div class="camera-actions">
+<div class="camera-box" id="camSection">
+  <video id="camVideo" class="camera-preview" autoplay playsinline muted></video>
+
+  <div class="barcode-panel" id="barcodePanel">
+    <div class="barcode-head">
+      <div>
+        <div class="barcode-title">Barcode Scanner</div>
+        <div class="barcode-sub" id="barcodeFormat">Arahkan kamera ke barcode</div>
+      </div>
+
+      <button class="icon-btn" id="flashBtn" type="button" title="Flash">
+        <i class="ti ti-bolt"></i>
+      </button>
+    </div>
+
+    <input class="input barcode-value" id="barcodeValue" readonly placeholder="Hasil barcode akan muncul di sini...">
+
+    <div class="barcode-actions">
+      <button class="btn btn-soft" id="copyBarcodeBtn" type="button" disabled>
+        <i class="ti ti-copy"></i> Copy
+      </button>
+      <button class="btn btn-primary" id="downloadBarcodeBtn" type="button" disabled>
+        <i class="ti ti-download"></i> Download TXT
+      </button>
+    </div>
+  </div>
+
+  <div class="camera-actions">
         <button class="btn btn-primary" id="snapBtn">
           <i class="ti ti-camera"></i> Capture & Close
         </button>
@@ -1296,6 +1366,11 @@ let queue = [];
 let activeIdx = -1;
 let logoImage = null;
 let camStream = null;
+let barcodeDetector = null;
+let barcodeScanTimer = null;
+let lastBarcodeValue = '';
+let lastBarcodeFormat = '';
+let flashOn = false;
 let busy = false;
 let savedCount = 0;
 let gallery = [];
@@ -1315,6 +1390,12 @@ const el = {
   snapBtn: document.getElementById('snapBtn'),
   snapAddBtn: document.getElementById('snapAddBtn'),
   closeCamBtn: document.getElementById('closeCamBtn'),
+  flashBtn: document.getElementById('flashBtn'),
+  barcodePanel: document.getElementById('barcodePanel'),
+  barcodeValue: document.getElementById('barcodeValue'),
+  barcodeFormat: document.getElementById('barcodeFormat'),
+  copyBarcodeBtn: document.getElementById('copyBarcodeBtn'),
+  downloadBarcodeBtn: document.getElementById('downloadBarcodeBtn'),
 
   loadPresetBtn: document.getElementById('loadPresetBtn'),
   savePresetBtn: document.getElementById('savePresetBtn'),
@@ -1484,6 +1565,181 @@ function fileSafeName(name) {
     .replace(/[^a-z0-9_\-]+/gi, '_')
     .replace(/^_+|_+$/g, '')
     .toLowerCase() || 'watermark';
+}
+function txtSafeName(value) {
+  return String(value || 'barcode')
+    .trim()
+    .replace(/[^a-z0-9_\-]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase() || 'barcode';
+}
+
+async function initBarcodeDetector() {
+  if (!('BarcodeDetector' in window)) {
+    el.barcodeFormat.textContent = 'BarcodeDetector belum didukung di browser ini';
+    setStatus('Barcode scanner belum didukung di browser ini. Coba Chrome Android / Edge.');
+    return false;
+  }
+
+  try {
+    const supported = await BarcodeDetector.getSupportedFormats();
+
+    const formats = [
+      'code_128',
+      'code_39',
+      'code_93',
+      'ean_13',
+      'ean_8',
+      'upc_a',
+      'upc_e',
+      'itf',
+      'qr_code',
+      'data_matrix',
+      'pdf417',
+      'aztec'
+    ].filter(format => supported.includes(format));
+
+    if (!formats.length) {
+      el.barcodeFormat.textContent = 'Format barcode tidak tersedia di browser ini';
+      setStatus('Browser ini belum support format barcode yang dibutuhkan.');
+      return false;
+    }
+
+    barcodeDetector = new BarcodeDetector({ formats });
+    el.barcodeFormat.textContent = 'Scanner aktif: ' + formats.join(', ');
+    return true;
+  } catch (err) {
+    console.warn(err);
+    el.barcodeFormat.textContent = 'Gagal mengaktifkan barcode scanner';
+    return false;
+  }
+}
+
+function setBarcodeResult(value, format) {
+  lastBarcodeValue = value || '';
+  lastBarcodeFormat = format || '';
+
+  el.barcodeValue.value = lastBarcodeValue;
+  el.barcodeFormat.textContent = lastBarcodeFormat
+    ? 'Terdeteksi: ' + lastBarcodeFormat
+    : 'Barcode terdeteksi';
+
+  el.copyBarcodeBtn.disabled = !lastBarcodeValue;
+  el.downloadBarcodeBtn.disabled = !lastBarcodeValue;
+}
+
+async function scanBarcodeLoop() {
+  if (!camStream || !barcodeDetector || !el.camVideo.videoWidth) return;
+
+  try {
+    const results = await barcodeDetector.detect(el.camVideo);
+
+    if (results && results.length > 0) {
+      const result = results[0];
+      const value = result.rawValue || '';
+      const format = result.format || 'unknown';
+
+      if (value && value !== lastBarcodeValue) {
+        setBarcodeResult(value, format);
+        setStatus('Barcode terbaca: ' + value, 2500);
+      }
+    }
+  } catch (err) {
+    console.warn('Barcode scan error:', err);
+  }
+}
+
+function startBarcodeScanner() {
+  stopBarcodeScanner();
+
+  initBarcodeDetector().then(ok => {
+    if (!ok) return;
+
+    barcodeScanTimer = setInterval(scanBarcodeLoop, 450);
+  });
+}
+
+function stopBarcodeScanner() {
+  if (barcodeScanTimer) {
+    clearInterval(barcodeScanTimer);
+    barcodeScanTimer = null;
+  }
+}
+
+function downloadBarcodeTxt() {
+  if (!lastBarcodeValue) {
+    setStatus('Belum ada barcode yang terbaca');
+    return;
+  }
+
+  const content =
+`Barcode Value:
+${lastBarcodeValue}
+
+Format:
+${lastBarcodeFormat || 'unknown'}
+`;
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = txtSafeName(lastBarcodeValue) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+  setStatus('File barcode TXT berhasil didownload!');
+}
+
+async function copyBarcodeValue() {
+  if (!lastBarcodeValue) {
+    setStatus('Belum ada barcode yang terbaca');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(lastBarcodeValue);
+    setStatus('Barcode berhasil dicopy!');
+  } catch (err) {
+    console.warn(err);
+    el.barcodeValue.select();
+    document.execCommand('copy');
+    setStatus('Barcode berhasil dicopy!');
+  }
+}
+
+async function toggleFlash() {
+  if (!camStream) {
+    setStatus('Kamera belum aktif');
+    return;
+  }
+
+  const track = camStream.getVideoTracks()[0];
+  if (!track) return;
+
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+
+  if (!caps.torch) {
+    setStatus('Flash/torch tidak didukung di device ini');
+    return;
+  }
+
+  try {
+    flashOn = !flashOn;
+
+    await track.applyConstraints({
+      advanced: [{ torch: flashOn }]
+    });
+
+    el.flashBtn.classList.toggle('active', flashOn);
+    setStatus(flashOn ? 'Flash nyala' : 'Flash mati');
+  } catch (err) {
+    console.warn(err);
+    setStatus('Gagal mengubah flash');
+  }
 }
 
 function syncButtons() {
@@ -2410,13 +2666,33 @@ window.addEventListener('load', () => {
 ========================= */
 async function openCamera() {
   try {
+    if (camStream) {
+      stopCamera();
+    }
+
     camStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
       audio: false
     });
+
     el.camVideo.srcObject = camStream;
     el.camSection.classList.add('show');
-    setStatus('Camera siap dipakai', 0);
+
+    flashOn = false;
+    el.flashBtn.classList.remove('active');
+
+    setBarcodeResult('', '');
+    el.barcodeFormat.textContent = 'Arahkan kamera ke barcode';
+
+    await el.camVideo.play();
+
+    startBarcodeScanner();
+
+    setStatus('Camera siap dipakai. Arahkan ke barcode.', 0);
   } catch (err) {
     console.error(err);
     setStatus('Izin camera ditolak / tidak tersedia', 5000);
@@ -2424,10 +2700,20 @@ async function openCamera() {
 }
 
 function stopCamera() {
+  stopBarcodeScanner();
+
   if (camStream) {
     camStream.getTracks().forEach(track => track.stop());
     camStream = null;
   }
+
+  flashOn = false;
+
+  if (el.flashBtn) {
+    el.flashBtn.classList.remove('active');
+  }
+
+  el.camVideo.srcObject = null;
   el.camSection.classList.remove('show');
 }
 
@@ -2454,6 +2740,9 @@ el.fileInput.addEventListener('change', async () => {
 
 el.camBtn.addEventListener('click', openCamera);
 el.closeCamBtn.addEventListener('click', stopCamera);
+el.flashBtn.addEventListener('click', toggleFlash);
+el.copyBarcodeBtn.addEventListener('click', copyBarcodeValue);
+el.downloadBarcodeBtn.addEventListener('click', downloadBarcodeTxt);
 el.snapBtn.addEventListener('click', () => capturePhoto(true));
 el.snapAddBtn.addEventListener('click', () => capturePhoto(false));
 
