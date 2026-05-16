@@ -742,6 +742,36 @@ details[open] .summary-arrow{
   }
   .gallery-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+.install-box{
+  text-align:center;
+}
+
+.install-logo{
+  width:96px;
+  height:96px;
+  margin:0 auto 14px;
+  border-radius:24px;
+  overflow:hidden;
+  background:#f8fafc;
+  border:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.install-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+@media (max-width:480px){
+  .install-logo{
+    width:86px;
+    height:86px;
+  }
+}
 /* ── SPLASH SCREEN ── */
 .splash-screen {
   position: fixed;
@@ -983,9 +1013,9 @@ details[open] .summary-arrow{
       <button class="btn btn-soft" id="copyBarcodeBtn" type="button" disabled>
         <i class="ti ti-copy"></i> Copy
       </button>
-      <button class="btn btn-primary" id="downloadBarcodeBtn" type="button" disabled>
-        <i class="ti ti-download"></i> Download TXT
-      </button>
+        <button class="btn btn-primary" id="downloadBarcodeBtn" type="button" disabled>
+          <i class="ti ti-device-floppy"></i> Save TXT
+        </button>
     </div>
   </div>
 
@@ -1336,6 +1366,27 @@ details[open] .summary-arrow{
   </div>
 </div>
 
+
+<!-- DOWNLOAD APK POPUP -->
+<div class="modal" id="installAppModal">
+  <div class="modal-box install-box">
+    <div class="install-logo">
+      <img src="logo2.png" alt="WTRMK Studio Logo">
+    </div>
+
+    <h3>Download WTRMK Studio APK?</h3>
+    <p>Install versi APK Android biar bisa dibuka seperti aplikasi biasa.</p>
+
+    <div class="modal-actions">
+      <button class="btn" id="dismissInstallBtn" type="button">Nanti</button>
+      <button class="btn btn-primary" id="installAppBtn" type="button">
+        <i class="ti ti-download"></i> Download APK
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 /* =========================
    STATE
@@ -1396,6 +1447,10 @@ const el = {
   barcodeFormat: document.getElementById('barcodeFormat'),
   copyBarcodeBtn: document.getElementById('copyBarcodeBtn'),
   downloadBarcodeBtn: document.getElementById('downloadBarcodeBtn'),
+
+  installAppModal: document.getElementById('installAppModal'),
+  installAppBtn: document.getElementById('installAppBtn'),
+  dismissInstallBtn: document.getElementById('dismissInstallBtn'),
 
   loadPresetBtn: document.getElementById('loadPresetBtn'),
   savePresetBtn: document.getElementById('savePresetBtn'),
@@ -1498,6 +1553,52 @@ function closeModal() {
   document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
 }
 
+const APK_URL = 'downloads/wtrmk-studio.apk';
+
+function isAppInstalled() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function shouldShowInstallPopup() {
+  if (isAppInstalled()) return false;
+
+  const dismissedAt = Number(localStorage.getItem('apkPopupDismissedAt') || 0);
+  const oneDay = 24 * 60 * 60 * 1000;
+
+  return Date.now() - dismissedAt > oneDay;
+}
+
+function showInstallPopup() {
+  if (!el.installAppModal) return;
+  if (!shouldShowInstallPopup()) return;
+
+  el.installAppModal.classList.add('show');
+}
+
+function hideInstallPopup() {
+  if (!el.installAppModal) return;
+
+  el.installAppModal.classList.remove('show');
+}
+
+function dismissInstallPopup() {
+  localStorage.setItem('apkPopupDismissedAt', Date.now().toString());
+  hideInstallPopup();
+}
+
+function downloadAPK() {
+  const a = document.createElement('a');
+  a.href = APK_URL;
+  a.download = 'WTRMK-Studio.apk';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  hideInstallPopup();
+  setStatus('APK sedang didownload...');
+}
+
 function updateProgress(pct, text) {
   el.progressWrap.classList.add('show');
   el.progressFill.style.width = pct + '%';
@@ -1573,6 +1674,21 @@ function txtSafeName(value) {
     .replace(/^_+|_+$/g, '')
     .toLowerCase() || 'barcode';
 }
+function makeBarcodeTxtContent(value, format) {
+  return `Barcode Value:
+${value}
+
+Format:
+${format || 'unknown'}
+
+Created At:
+${new Date().toLocaleString()}
+`;
+}
+
+function textToDataURL(text) {
+  return 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+}
 
 async function initBarcodeDetector() {
   if (!('BarcodeDetector' in window)) {
@@ -1601,12 +1717,12 @@ async function initBarcodeDetector() {
 
     if (!formats.length) {
       el.barcodeFormat.textContent = 'Format barcode tidak tersedia di browser ini';
-      setStatus('Browser ini belum support format barcode yang dibutuhkan.');
+      setStatus('Device/Browser ini belum support format barcode yang dibutuhkan.');
       return false;
     }
 
     barcodeDetector = new BarcodeDetector({ formats });
-    el.barcodeFormat.textContent = 'Scanner aktif: ' + formats.join(', ');
+    el.barcodeFormat.textContent = 'Scanner aktif';
     return true;
   } catch (err) {
     console.warn(err);
@@ -1626,6 +1742,8 @@ function setBarcodeResult(value, format) {
 
   el.copyBarcodeBtn.disabled = !lastBarcodeValue;
   el.downloadBarcodeBtn.disabled = !lastBarcodeValue;
+
+  syncButtons();
 }
 
 async function scanBarcodeLoop() {
@@ -1672,26 +1790,17 @@ function downloadBarcodeTxt() {
     return;
   }
 
-  const content =
-`Barcode Value:
-${lastBarcodeValue}
+  const content = makeBarcodeTxtContent(lastBarcodeValue, lastBarcodeFormat);
+  const filename = `${txtSafeName(lastBarcodeValue)}.txt`;
 
-Format:
-${lastBarcodeFormat || 'unknown'}
-`;
+  addToGallery({
+    type: 'text',
+    text: content,
+    dataURL: textToDataURL(content),
+    filename
+  });
 
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = txtSafeName(lastBarcodeValue) + '.txt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  URL.revokeObjectURL(url);
-  setStatus('File barcode TXT berhasil didownload!');
+  setStatus('Barcode TXT masuk ke Gallery!');
 }
 
 async function copyBarcodeValue() {
@@ -1744,22 +1853,18 @@ async function toggleFlash() {
 
 function syncButtons() {
   const hasQueue = queue.length > 0;
-  const disabled = busy || !hasQueue;
-  [
-    el.btnApplyOne,
-    el.btnApplyAll,
-    el.btnSaveOne,
-    el.btnSaveAll,
-    el.btnShareOne,
-    el.btnShareAll,
-    el.clearQueueBtn
-  ].forEach(btn => btn.disabled = disabled);
+  const hasAnyExport = queue.length > 0 || gallery.length > 0 || !!lastBarcodeValue;
 
-  if (activeIdx < 0) {
-    el.btnApplyOne.disabled = true;
-    el.btnSaveOne.disabled = true;
-    el.btnShareOne.disabled = true;
-  }
+  el.btnApplyOne.disabled = busy || !hasQueue || activeIdx < 0;
+  el.btnApplyAll.disabled = busy || !hasQueue;
+
+  el.btnSaveOne.disabled = busy || !hasQueue || activeIdx < 0;
+
+  el.btnSaveAll.disabled = busy || !hasAnyExport;
+  el.btnShareOne.disabled = busy || !hasQueue || activeIdx < 0;
+  el.btnShareAll.disabled = busy || !hasAnyExport;
+
+  el.clearQueueBtn.disabled = busy || !hasQueue;
 }
 
 function bindRange(input, output, formatFn) {
@@ -2155,13 +2260,34 @@ async function showCanvasFromSrc(src) {
   el.emptyState.style.display = 'none';
 }
 
-async function setActive(i) {
-  if (!queue[i]) return;
-  activeIdx = i;
-  renderQueue();
-  const item = queue[i];
-  await showCanvasFromSrc(item.processedSrc || item.originalSrc);
-  syncButtons();
+async function saveActive() {
+  if (activeIdx < 0 || !queue[activeIdx] || busy) return;
+
+  try {
+    busy = true;
+    syncButtons();
+
+    updateProgress(35, 'Saving to gallery...');
+
+    const item = queue[activeIdx];
+    const src = await ensureProcessed(item);
+    const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}.jpg`;
+
+    doSaveToGallery(src, filename);
+
+    item.done = true;
+    renderQueue();
+
+    updateProgress(100, 'Saved to gallery');
+    setStatus('Gambar masuk ke Gallery!');
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal save gambar');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
 }
 
 /* =========================
@@ -2370,9 +2496,110 @@ async function applyToAll() {
   }
 }
 
-function addToGallery(dataURL, filename) {
-  gallery.unshift({ dataURL, filename });
+function addToGallery(entry, filename = null) {
+  if (typeof entry === 'string') {
+    gallery.unshift({
+      type: 'image',
+      dataURL: entry,
+      filename: filename || `image_${Date.now()}.jpg`
+    });
+  } else {
+    gallery.unshift({
+      type: entry.type || 'image',
+      dataURL: entry.dataURL || null,
+      text: entry.text || null,
+      filename: entry.filename || filename || `file_${Date.now()}`
+    });
+  }
+
   renderGallery();
+}
+
+function renderGallery() {
+  el.galleryCount.textContent = gallery.length;
+  el.galleryGrid.innerHTML = '';
+
+  if (!gallery.length) {
+    el.galleryGrid.innerHTML = '<div class="empty-list" style="grid-column:1/-1;">Belum ada hasil tersimpan.</div>';
+    return;
+  }
+
+  gallery.forEach((item) => {
+    const card = document.createElement('div');
+    card.className = 'gallery-item';
+
+    const imageBox = document.createElement('div');
+    imageBox.className = 'gallery-image';
+
+    if (item.type === 'text') {
+      const txtBox = document.createElement('div');
+      txtBox.style.width = '100%';
+      txtBox.style.height = '100%';
+      txtBox.style.display = 'flex';
+      txtBox.style.flexDirection = 'column';
+      txtBox.style.alignItems = 'center';
+      txtBox.style.justifyContent = 'center';
+      txtBox.style.padding = '14px';
+      txtBox.style.textAlign = 'center';
+      txtBox.style.background = '#eff6ff';
+      txtBox.style.color = '#1d4ed8';
+
+      txtBox.innerHTML = `
+        <i class="ti ti-barcode" style="font-size:42px;margin-bottom:10px;"></i>
+        <strong style="font-size:13px;word-break:break-all;">${item.text || ''}</strong>
+        <span style="font-size:11px;color:#64748b;margin-top:6px;">TXT Barcode</span>
+      `;
+
+      imageBox.appendChild(txtBox);
+    } else {
+      const img = document.createElement('img');
+      img.src = item.dataURL;
+      img.alt = item.filename;
+
+      img.addEventListener('click', () => {
+        addToQueue([{ src: item.dataURL, name: item.filename }]);
+        setStatus('Gambar dari gallery dimasukkan ke queue');
+      });
+
+      imageBox.appendChild(img);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'gallery-actions';
+
+    const shareBtn = document.createElement('button');
+    shareBtn.className = 'gallery-action-btn';
+    shareBtn.type = 'button';
+    shareBtn.title = 'Share';
+    shareBtn.innerHTML = '<i class="ti ti-share"></i>';
+    shareBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await shareGalleryItem(item);
+    });
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.className = 'gallery-action-btn';
+    downloadBtn.type = 'button';
+    downloadBtn.title = 'Download';
+    downloadBtn.innerHTML = '<i class="ti ti-download"></i>';
+    downloadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadGalleryItem(item);
+    });
+
+    actions.appendChild(shareBtn);
+    actions.appendChild(downloadBtn);
+    imageBox.appendChild(actions);
+
+    const caption = document.createElement('div');
+    caption.className = 'gallery-caption';
+    caption.textContent = item.filename;
+
+    card.appendChild(imageBox);
+    card.appendChild(caption);
+
+    el.galleryGrid.appendChild(card);
+  });
 }
 
 function renderGallery() {
@@ -2447,9 +2674,68 @@ function downloadDataURL(src, filename) {
   document.body.removeChild(a);
 }
 
-function doDownloadAndGallery(src, filename) {
-  downloadDataURL(src, filename);
-  addToGallery(src, filename);
+function downloadTextFile(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}
+
+function downloadGalleryItem(item) {
+  if (item.type === 'text') {
+    downloadTextFile(item.text || '', item.filename || 'barcode.txt');
+    return;
+  }
+
+  downloadDataURL(item.dataURL, item.filename || 'image.jpg');
+}
+
+async function galleryItemToFile(item) {
+  if (item.type === 'text') {
+    return new File(
+      [item.text || ''],
+      item.filename || 'barcode.txt',
+      { type: 'text/plain' }
+    );
+  }
+
+  return dataURLToFile(item.dataURL, item.filename || 'image.jpg');
+}
+
+async function shareGalleryItem(item) {
+  try {
+    const file = await galleryItemToFile(item);
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: item.filename || 'WTRMK Studio File',
+        files: [file]
+      });
+      setStatus('File berhasil dishare!');
+      return;
+    }
+
+    downloadGalleryItem(item);
+    setStatus('Share tidak didukung. File didownload sebagai pengganti.');
+  } catch (err) {
+    console.warn(err);
+    setStatus('Share dibatalkan');
+  }
+}
+
+function doSaveToGallery(src, filename) {
+  addToGallery({
+    type: 'image',
+    dataURL: src,
+    filename
+  });
 }
 
 async function saveActive() {
@@ -2477,27 +2763,27 @@ async function saveActive() {
 }
 
 async function saveAll() {
-  if (!queue.length || busy) return;
+  if ((!queue.length && !gallery.length && !lastBarcodeValue) || busy) {
+    setStatus('Belum ada file untuk dibuat ZIP');
+    return;
+  }
+
   try {
     busy = true;
     syncButtons();
 
-    for (let i = 0; i < queue.length; i++) {
-      updateProgress(Math.round((i / queue.length) * 100), `Saving ${i + 1} / ${queue.length}`);
-      const item = queue[i];
-      const src = await ensureProcessed(item);
-      const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}_${i + 1}.jpg`;
-      doDownloadAndGallery(src, filename);
-      item.done = true;
-      renderQueue();
-      await new Promise(r => setTimeout(r, 120));
-    }
+    updateProgress(20, 'Membuat ZIP...');
 
-    updateProgress(100, 'Semua tersimpan');
-    setStatus(`${queue.length} gambar berhasil disimpan!`);
+    const zipBlob = await buildAllZip();
+    const filename = `wtrmk_studio_export_${Date.now()}.zip`;
+
+    updateProgress(100, 'ZIP ready');
+    downloadBlob(zipBlob, filename);
+
+    setStatus('Semua file berhasil dibuat ZIP!');
   } catch (err) {
     console.error(err);
-    setStatus('Gagal save all');
+    setStatus('Gagal membuat ZIP');
   } finally {
     busy = false;
     syncButtons();
@@ -2509,6 +2795,100 @@ async function dataURLToFile(dataURL, filename) {
   const res = await fetch(dataURL);
   const blob = await res.blob();
   return new File([blob], filename, { type: blob.type || 'image/jpeg' });
+}
+
+async function addDataURLToZip(zip, folderName, dataURL, filename) {
+  const res = await fetch(dataURL);
+  const blob = await res.blob();
+  zip.folder(folderName).file(filename, blob);
+}
+
+async function buildAllZip() {
+  if (typeof JSZip === 'undefined') {
+    throw new Error('JSZip belum dimuat. Pastikan script JSZip sudah ditambahkan.');
+  }
+
+  const zip = new JSZip();
+  const usedNames = new Set();
+
+  function uniqueName(name) {
+    let safe = name || `file_${Date.now()}`;
+    let base = safe.replace(/\.[^/.]+$/, '');
+    let ext = safe.match(/\.[^/.]+$/)?.[0] || '';
+    let finalName = safe;
+    let counter = 2;
+
+    while (usedNames.has(finalName)) {
+      finalName = `${base}_${counter}${ext}`;
+      counter++;
+    }
+
+    usedNames.add(finalName);
+    return finalName;
+  }
+
+  // 1. Masukkan semua gambar dari queue
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i];
+    const src = await ensureProcessed(item);
+    const filename = uniqueName(`${fileSafeName(item.name)}_watermarked_${i + 1}.jpg`);
+    await addDataURLToZip(zip, 'images', src, filename);
+  }
+
+  // 2. Masukkan semua item dari Gallery, termasuk barcode TXT
+  for (const item of gallery) {
+    if (item.type === 'text') {
+      zip.folder('barcodes').file(uniqueName(item.filename || 'barcode.txt'), item.text || '');
+    } else {
+      await addDataURLToZip(
+        zip,
+        'gallery',
+        item.dataURL,
+        uniqueName(item.filename || `gallery_${Date.now()}.jpg`)
+      );
+    }
+  }
+
+  // 3. Kalau barcode terakhir belum sempat disave ke gallery, tetap masuk ZIP
+  if (lastBarcodeValue) {
+    const barcodeFilename = uniqueName(`${txtSafeName(lastBarcodeValue)}.txt`);
+    zip.folder('barcodes').file(
+      barcodeFilename,
+      makeBarcodeTxtContent(lastBarcodeValue, lastBarcodeFormat)
+    );
+  }
+
+  return zip.generateAsync({ type: 'blob' });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}
+
+async function shareOrDownloadZip(zipBlob, filename) {
+  const file = new File([zipBlob], filename, { type: 'application/zip' });
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      title: 'WTRMK Studio Export',
+      text: 'Export dari WTRMK Studio',
+      files: [file]
+    });
+    setStatus('ZIP berhasil dishare!');
+    return;
+  }
+
+  downloadBlob(zipBlob, filename);
+  setStatus('Share ZIP tidak didukung. ZIP didownload sebagai pengganti.');
 }
 
 async function shareDataEntries(entries, isBulk = false) {
@@ -2618,27 +2998,25 @@ async function shareActive() {
 }
 
 async function shareAll() {
-  if (!queue.length || busy) return;
+  if ((!queue.length && !gallery.length && !lastBarcodeValue) || busy) {
+    setStatus('Belum ada file untuk dishare');
+    return;
+  }
+
   try {
     busy = true;
     syncButtons();
-    const entries = [];
 
-    for (let i = 0; i < queue.length; i++) {
-      updateProgress(Math.round((i / queue.length) * 100), `Preparing ${i + 1} / ${queue.length}`);
-      const item = queue[i];
-      const src = await ensureProcessed(item);
-      entries.push({
-        src,
-        filename: `${fileSafeName(item.name)}_watermarked_${i + 1}.jpg`
-      });
-    }
+    updateProgress(20, 'Membuat ZIP untuk share...');
 
-    updateProgress(100, 'Ready to share');
-    await shareDataEntries(entries, true);
+    const zipBlob = await buildAllZip();
+    const filename = `wtrmk_studio_share_${Date.now()}.zip`;
+
+    updateProgress(100, 'ZIP ready');
+    await shareOrDownloadZip(zipBlob, filename);
   } catch (err) {
     console.error(err);
-    setStatus('Gagal share semua');
+    setStatus('Gagal share ZIP');
   } finally {
     busy = false;
     syncButtons();
@@ -2813,6 +3191,15 @@ el.logoInput.addEventListener('change', async () => {
 el.clearLogoBtn.addEventListener('click', () => {
   clearLogoUI();
   setStatus('Logo dihapus');
+});
+
+el.installAppBtn.addEventListener('click', downloadAPK);
+el.dismissInstallBtn.addEventListener('click', dismissInstallPopup);
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    showInstallPopup();
+  }, 4500);
 });
 
 el.chkTeks.addEventListener('change', syncCheckboxes);
