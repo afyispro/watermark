@@ -12,19 +12,19 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "logo2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo.png",
+      "src": "logo2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo.png",
+      "src": "logo2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -32,7 +32,7 @@
   ],
   "screenshots": [
     {
-      "src": "home.png",
+      "src": "homenew.png",
       "sizes": "1280x720",
       "type": "image/png",
       "description": "WTRMK Studio home screen"
@@ -41,8 +41,8 @@
   "prefer_related_applications": false,
   "shortcuts": [
     {
-      "name": "PIONEER Watermark App",
-      "short_name": "PIONEER Watermark App",
+      "name": "WTRMK Studio",
+      "short_name": "WTRMK Studio",
       "description": "Open the watermark app",
       "url": "./",
       "icons": [
