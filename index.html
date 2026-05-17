@@ -1184,7 +1184,7 @@ details[open] .summary-arrow{
 			</div>
         <div>
           <h1>Product Images Collector</h1>
-          <p>Oleh Azam Alwafy</p>
+          <p>Oleh Muhammad Azam Alwafy</p>
         </div>
       </div>
     </div>
@@ -1323,17 +1323,23 @@ details[open] .summary-arrow{
           </div>
         </div>
 
-        <div class="action-grid">
-          <button class="btn" id="btnApplyOne" disabled>
-            <i class="ti ti-sparkles"></i> Apply
-          </button>
-          <button class="btn btn-primary" id="btnApplyAll" disabled>
-            <i class="ti ti-sparkles"></i> Apply All
-          </button>
-          <button class="btn" id="btnSaveOne" disabled>
-            <i class="ti ti-download"></i> Add to Gallery
-          </button>
-        </div>
+            <div class="action-grid">
+              <button class="btn" id="btnApplyOne" disabled>
+                <i class="ti ti-sparkles"></i> Apply
+              </button>
+
+              <button class="btn btn-primary" id="btnApplyAll" disabled>
+                <i class="ti ti-sparkles"></i> Apply All
+              </button>
+
+              <button class="btn" id="btnSaveOne" disabled>
+                <i class="ti ti-download"></i> Add to Gallery
+              </button>
+
+              <button class="btn btn-primary" id="btnAddAllGallery" disabled>
+                <i class="ti ti-photo-plus"></i> Add All to Gallery
+              </button>
+            </div>
 
         <div class="progress" id="progressWrap">
           <div class="progress-bar">
@@ -1360,7 +1366,7 @@ details[open] .summary-arrow{
 
       <div class="gallery-export-actions">
         <button class="btn" id="btnSaveAll" disabled>
-          <i class="ti ti-file-zip"></i> Save All
+          <i class="ti ti-file-zip"></i> ZIP All
         </button>
 
         <button class="btn btn-primary" id="btnShareAll" disabled>
@@ -1824,6 +1830,7 @@ const el = {
   btnApplyOne: document.getElementById('btnApplyOne'),
   btnApplyAll: document.getElementById('btnApplyAll'),
   btnSaveOne: document.getElementById('btnSaveOne'),
+  btnAddAllGallery: document.getElementById('btnAddAllGallery'),
   btnSaveAll: document.getElementById('btnSaveAll'),
   btnShareAll: document.getElementById('btnShareAll'),
 
@@ -2519,6 +2526,36 @@ async function toggleFlash() {
   }
 }
 
+async function turnOffFlash() {
+  if (!camStream) {
+    flashOn = false;
+    if (el.flashBtn) el.flashBtn.classList.remove('active');
+    return;
+  }
+
+  const track = camStream.getVideoTracks()[0];
+
+  if (track && track.getCapabilities) {
+    const caps = track.getCapabilities();
+
+    if (caps.torch) {
+      try {
+        await track.applyConstraints({
+          advanced: [{ torch: false }]
+        });
+      } catch (err) {
+        console.warn('Gagal mematikan flash:', err);
+      }
+    }
+  }
+
+  flashOn = false;
+
+  if (el.flashBtn) {
+    el.flashBtn.classList.remove('active');
+  }
+}
+
 function syncButtons() {
   const hasQueue = queue.length > 0;
   const hasGallery = gallery.length > 0;
@@ -2527,6 +2564,7 @@ function syncButtons() {
   el.btnApplyAll.disabled = busy || !hasQueue;
 
   el.btnSaveOne.disabled = busy || !hasQueue || activeIdx < 0;
+  el.btnAddAllGallery.disabled = busy || !hasQueue;
 
   el.btnSaveAll.disabled = busy || !hasGallery;
   el.btnShareAll.disabled = busy || !hasGallery;
@@ -2949,7 +2987,7 @@ async function showCanvasFromSrc(src) {
   el.emptyState.style.display = 'none';
 }
 
-// WAJIB ADA INI DULU
+// aku yang buat ini "Azam 2026 wkwkwkw"
 async function setActive(i) {
   if (!queue[i]) return;
 
@@ -2962,7 +3000,7 @@ async function setActive(i) {
   syncButtons();
 }
 
-// BARU saveActive DI BAWAHNYA
+// Hello there WKWKWKWK
 async function saveActive() {
   if (activeIdx < 0 || !queue[activeIdx] || busy) return;
 
@@ -2998,6 +3036,51 @@ async function saveActive() {
   } catch (err) {
     console.error(err);
     setStatus('Gagal menambahkan ke Gallery');
+  } finally {
+    busy = false;
+    syncButtons();
+    hideProgress();
+  }
+}
+
+async function addAllToGallery() {
+  if (!queue.length || busy) return;
+
+  try {
+    busy = true;
+    syncButtons();
+
+    const total = queue.length;
+    const items = [...queue];
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      updateProgress(
+        Math.round((i / total) * 90),
+        `Adding ${i + 1} / ${total} to Gallery...`
+      );
+
+      const src = await ensureProcessed(item);
+      const filename = `${fileSafeName(item.name)}_watermarked_${Date.now()}_${i + 1}.jpg`;
+
+      doSaveToGallery(src, filename);
+
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    queue = [];
+    activeIdx = -1;
+
+    showEmpty();
+    renderQueue();
+    renderGallery();
+
+    updateProgress(100, 'All moved to Gallery');
+    setStatus(`${total} gambar dipindahkan ke Gallery!`);
+  } catch (err) {
+    console.error(err);
+    setStatus('Gagal Add All to Gallery');
   } finally {
     busy = false;
     syncButtons();
@@ -3713,7 +3796,7 @@ window.addEventListener('load', () => {
 async function openCamera() {
   try {
     if (camStream) {
-      stopCamera();
+      await stopCamera();
     }
 
     camStream = await navigator.mediaDevices.getUserMedia({
@@ -3752,27 +3835,29 @@ el.scanToggleBtn.addEventListener('click', toggleManualBarcodeScan);
 el.clearBarcodeBtn.addEventListener('click', clearBarcodeResult);
 
 
-function stopCamera() {
+async function stopCamera() {
   stopBarcodeScanner();
+
+  barcodeScannerEnabled = false;
+  updateScanButtonUI();
+
+  await turnOffFlash();
 
   if (camStream) {
     camStream.getTracks().forEach(track => track.stop());
     camStream = null;
   }
 
-  flashOn = false;
-
-  if (el.flashBtn) {
-    el.flashBtn.classList.remove('active');
+  if (el.camVideo) {
+    el.camVideo.srcObject = null;
   }
 
-  el.camVideo.srcObject = null;
   el.camSection.classList.remove('show');
 
   syncButtons();
 }
 
-function capturePhoto(closeAfter) {
+async function capturePhoto(closeAfter) {
   if (!camStream || !el.camVideo.videoWidth) {
     setStatus('Camera belum siap');
     return;
@@ -3800,7 +3885,7 @@ function capturePhoto(closeAfter) {
   clearBarcodeResult();
 
   if (closeAfter) {
-    stopCamera();
+    await stopCamera();
     setStatus('Foto berhasil dicapture dan camera ditutup');
     return;
   }
@@ -3820,7 +3905,7 @@ el.fileInput.addEventListener('change', async () => {
 });
 
 el.camBtn.addEventListener('click', openCamera);
-el.closeCamBtn.addEventListener('click', stopCamera);
+el.closeCamBtn.addEventListener('click', () => stopCamera());
 el.flashBtn.addEventListener('click', toggleFlash);
 el.copyBarcodeBtn.addEventListener('click', copyBarcodeValue);
 el.downloadBarcodeBtn.addEventListener('click', downloadBarcodeTxt);
@@ -4028,6 +4113,7 @@ bindRange(el.logoTileAngle, el.logoTileAngleVal, v => v + '°');
 el.btnApplyOne.addEventListener('click', applyToActive);
 el.btnApplyAll.addEventListener('click', applyToAll);
 el.btnSaveOne.addEventListener('click', saveActive);
+el.btnAddAllGallery.addEventListener('click', addAllToGallery);
 el.btnSaveAll.addEventListener('click', saveAll);
 el.btnShareAll.addEventListener('click', shareAll);
 
